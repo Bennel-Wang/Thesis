@@ -8,6 +8,7 @@ with open('/home/bennel/Documents/DARPA2000-LLS_DDOS_2.0.2/inside.csv', 'r') as 
     for (i,l) in enumerate(reader):
         if(i == 0):
             continue
+
         else:
             pattern = re.compile(r'(.*)  >  (.*)')
             matchObj = pattern.match(l[6])
