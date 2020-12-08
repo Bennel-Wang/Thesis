@@ -1,6 +1,7 @@
 import csv
 import re
 import collections
+import pandas as pd
 
 #whether the gap of two inputs is bigger the the preset value
 def validTimeGap(timeFormer, timeLatter, validGap):
@@ -14,7 +15,7 @@ if __name__ == '__main__':
     #initialization
     with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside (test).csv', 'r') as f:
         reader = csv.reader(f)
-        result = []
+        result = [['Ip', 'Time', 'Type', 'attack tree group']]
         group = 0
         IpGroup = collections.defaultdict(int)
         SrcIpDict = collections.defaultdict(int)
@@ -45,15 +46,20 @@ if __name__ == '__main__':
                         group = group + 1                           #new a group and add the SrcIP and DesIp to the group
                         IpGroup[l['SrcIp']] = group
                         IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
-                        print('Initialize SrcIp ', l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'],  l['Info'], 'Attack tree group = ', group)
+                        print('Initialize SrcIp ', l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'],  l['Info'], 'Attack tree group = ', IpGroup[l['SrcIp']])
+                        #result.append([['Ip', 'Time', 'Type']])
+                        result.append([])
+                        result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'], l['Time'], l['Info']])
                     else:                                           #but Src as Des before, link the path
                         relatedIpDict[l['SrcIp']] = relatedIpDict[l['SrcIp']] + 1
                         IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
                         print(l['SrcIp'], ' > ', l['DesIp'],  ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
+                        result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'], l['Time'], l['Info'] ])
                 else:                                               #SrcIp as Src before
                     SrcIpDict[l['SrcIp']]= SrcIpDict[l['SrcIp']] + 1
                     IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
                     print(l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
+                    result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'], l['Time'], l['Info']])
 
                 #add the destioation Ips to the frequency dictionary,  the previous des and the current des
                 if (DesIpDict[l['DesIp']] == 0):
@@ -65,6 +71,10 @@ if __name__ == '__main__':
         for relatedIp in relatedIpDict:
             print('relatedIp = ', relatedIp, 'relatedFreq = ', relatedIpDict[relatedIp])
 
-            #result.append(l)
-        #print(result)
+        groupNum = len(result) - 1
+        for i in range (1, groupNum+1):
+            name = ['Ip', 'Time','Info']
+            data = pd.DataFrame(columns = name, data = result[i])
+            data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
+        print(result)
 
