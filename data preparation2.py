@@ -13,7 +13,7 @@ def validTimeGap(timeFormer, timeLatter, validGap):
 if __name__ == '__main__':
 
     #initialization
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside (test).csv', 'r') as f:
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside.csv', 'r') as f:
         reader = csv.reader(f)
         result = [['Ip', 'Time', 'Type', 'attack tree group']]
         group = 0
@@ -72,9 +72,12 @@ if __name__ == '__main__':
             print('relatedIp = ', relatedIp, 'relatedFreq = ', relatedIpDict[relatedIp])
 
         groupNum = len(result) - 1
+        name = ['Ip', 'Time', 'Info']
         for i in range (1, groupNum+1):
-            name = ['Ip', 'Time','Info']
-            data = pd.DataFrame(columns = name, data = result[i])
-            data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
-        print(result)
+            IpPairNum = len(result[i])
+            if IpPairNum > 1:
+                data = pd.DataFrame(columns = name, data = result[i])
+                data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
+        #print(result)
+        print('output done')
 
