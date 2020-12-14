@@ -4,11 +4,21 @@ import collections
 import pandas as pd
 
 def aggregation(groupResult, newLine):
-    for result in groupResult:
+    slideTWin = 10000
+    for (i,result) in enumerate(groupResult):
+        # do not do anything if Ip, port, Protocol are the same and the time is in the sliding window--tuple content
         if((result[0] == newLine[0]) and (result[1] == newLine[1]) and
-                (result[2] == newLine[2]) and (result[3] == newLine[3])):   #do not do anything if Ip, port, Protocol are the same
-            return
-    else:
+                (result[2] == newLine[2]) and (result[3] == newLine[3])):       #information are the same--appear before
+            if (validTimeGap(result[5], newLine[5], slideTWin)):    #in sliding window
+                groupResult[i][5] = newLine[5]
+                return
+            else:   #not in sliding window
+                if(newLine[4] == '-'):
+                    newLine[4] = newLine[5]
+                groupResult.append(newLine)
+                return
+    else:       #tuple content are unique
+        newLine[4] = newLine[5]
         groupResult.append(newLine)
         return
 
@@ -19,14 +29,13 @@ def validTimeGap(timeFormer, timeLatter, validGap):
     else:
         return True
 
-if __name__ == '__main__':
-
+def dataprocessing():
     #initialization
     with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside (test).csv', 'r') as f:
         reader = csv.reader(f)
         result = [['Ip', 'Protocol', 'SrcPort', 'DesPort', 'attack tree group']]
         group = 0
-        validInterval = 1000
+        validInterval = 10000
         IpGroup = collections.defaultdict(int)
         IpLastTime = collections.defaultdict(str)
         SrcIpFreq = collections.defaultdict(int)
@@ -62,7 +71,7 @@ if __name__ == '__main__':
                         print('Initialize SrcIp ', l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'],  l['Info'], 'Attack tree group = ', IpGroup[l['SrcIp']])
                         result.append([])
                         aggregation(result[IpGroup[l['SrcIp']]],
-                                    [l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
+                                    [l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Time']])  #IP initialize: first appear time = last appear time
                         #result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
                     else:                                           #but Src as Des before
                         #relatedIpDict[l['SrcIp']] = relatedIpDict[l['SrcIp']] + 1
@@ -72,7 +81,7 @@ if __name__ == '__main__':
                             IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
                             print(l['SrcIp'], ' > ', l['DesIp'],  ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
                             aggregation(result[IpGroup[l['SrcIp']]],
-                                        [l['SrcIp'] + ' > ' + l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort']])
+                                        [l['SrcIp'] + ' > ' + l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Time']]) #IP initialize: first appear time = last appear time
                             #result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
                         else:                                                       #otherwise, break and create a new path
                             IpLastTime[l['SrcIp']] = l['Time']
@@ -85,7 +94,7 @@ if __name__ == '__main__':
                             # result.append([['Ip', 'Time', 'Type']])
                             result.append([])
                             aggregation(result[IpGroup[l['SrcIp']]],
-                                        [l['SrcIp'] + ' > ' + l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort']])
+                                        [l['SrcIp'] + ' > ' + l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Time']]) #IP initialize: first appear time = last appear time
                             #result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
                 else:                                               #SrcIp as Src before
                     if (validTimeGap(IpLastTime[l['SrcIp']], l['Time'], validInterval)):   #if the time interval between Ip current and last appearance, link the path
@@ -95,7 +104,7 @@ if __name__ == '__main__':
                         IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
                         print(l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
                         aggregation(result[IpGroup[l['SrcIp']]],
-                                    [l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
+                                    [l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], '-',l['Time']])
                         #result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
                     else:                                                       # otherwise, break and create a new path
                         IpLastTime[l['SrcIp']] = l['Time']
@@ -109,7 +118,7 @@ if __name__ == '__main__':
                         # result.append([['Ip', 'Time', 'Type']])
                         result.append([])
                         aggregation(result[IpGroup[l['SrcIp']]],
-                                    [l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
+                                    [l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Time']])
                         #result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
 
                 #add the destioation Ips to the frequency dictionary,  the previous des and the current des
@@ -123,7 +132,7 @@ if __name__ == '__main__':
         #    print('relatedIp = ', relatedIp, 'relatedFreq = ', relatedIpDict[relatedIp])
 
         groupNum = len(result) - 1
-        name = ['Ip',  'Protocol', 'SrcPort', 'DesPort']
+        name = ['Ip',  'Protocol', 'SrcPort', 'DesPort','FirstAppearTIme','LastAppearTime']
         for i in range (1, groupNum+1):
             IpPairNum = len(result[i])
             if IpPairNum > 1:
@@ -132,3 +141,6 @@ if __name__ == '__main__':
         #print(result)
         print('output done')
 
+
+if __name__ == '__main__':
+    dataprocessing()

@@ -17,7 +17,7 @@ if __name__ == '__main__':
         reader = csv.reader(f)
         result = [['Ip', 'Time', 'Type', 'attack tree group']]
         group = 0
-        validInterval = 0.1
+        validInterval = 1000
         IpGroup = collections.defaultdict(int)
         IpLastTime = collections.defaultdict(str)
         SrcIpFreq = collections.defaultdict(int)
