@@ -5,13 +5,17 @@ import pandas as pd
 from graphviz import Digraph
 
 def visualization(dataList, filename):
-    SrcIp = collections.defaultdict(str)       #key: desIp, value:srcIp---one DesIp to one SrcIp, one SrcIp to many DesIp
     dot = Digraph(name=filename, comment="attack graph generation", format="png")
     for node in dataList:
+        node[0] = re.sub(r':', ";", node[0]) #process IPV6 address to prevent : as delimiter
+        node[1] = re.sub(r':', ";", node[1]) #process IPV6 address to prevent : as delimiter
         dot.node(name=node[0], label='SrcIp:' + node[0] , color='green')    #name = DesIp, label = Protocol
-        #dot.node(name=node[1], label='SrcIp:' + node[1], color='green')  # des do not exist no matters
+
     for node in dataList:  #when no destination, there may be error
-        dot.edge(node[0], node[1], label='first: ' + node[5] +'s\n' +' last: '+ node[6] + 's'+ '\n' + node[2], color='red')
+        la = 'FirstTime: ' + node[5] + 's\n' +' LastTime: '+ node[6] + 's' + '\n' + node[2]
+        if (node[2] == 'TCP'):
+            la = la + '\nSrcPort:' + node[3] + '\nDesPort:' + node[4]
+        dot.edge(node[0], node[1], label = la, color='red')
     dot.render(filename=filename, directory='/home/jin/Documents/Generated Img',view=False)
 
 def aggregation(groupResult, newLine):
@@ -42,7 +46,7 @@ def validTimeGap(timeFormer, timeLatter, validGap):
 
 def dataprocessing():
     #initialization
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside.csv', 'r') as f:
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside (test).csv', 'r') as f:
         reader = csv.reader(f)
         result = [['SrcIp', 'DesIP','Protocol', 'SrcPort', 'DesPort', 'First time', 'Last time']]
         group = 0
