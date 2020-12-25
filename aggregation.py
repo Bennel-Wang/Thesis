@@ -46,7 +46,7 @@ def validTimeGap(timeFormer, timeLatter, validGap):
 
 def dataprocessing():
     #initialization
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside (test).csv', 'r') as f:
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside.csv (test)', 'r') as f: #test for 3000 cases
         reader = csv.reader(f)
         result = [['SrcIp', 'DesIP','Protocol', 'SrcPort', 'DesPort', 'First time', 'Last time']]
         group = 0
