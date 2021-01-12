@@ -5,15 +5,26 @@ import pandas as pd
 from graphviz import Digraph
 
 #linking relation
-TLdict = {'DNS':{'Pre':['Start','P1'],'Pos':['P1']}, 'Portmap':{'Pre':['P1','P2','P3','P4'],'Pos':['P2']},'SADMIND':{'Pre':['P2'],'Pos':['P3']},
-         'TCP':{'Pre':['P3','P4','P5','P6','P7','P8','P9','End'],'Pos':['P4']},'FTP':{'Pre':['P4','P5'],'Pos':['P5']}, 'FTP-Data':{'Pre':['P4','P6'], 'Pos':['P6']},
-         'TELNET':{'Pre':['P4','P7'],'Pos':['P7']},'UDP':{'Pre':['P4','P7'],'Pos':['P8']}, 'ARP':{'Pre':['P4','P9'],'Pos':['P9']}, 'ICMP':{'Pre':['P8'],'Pos':['End']}}
+TLdict = {'DNS1':{'Pre':['Start1','Start2'],'Pos':['Start2']},
+         'Portmap2':{'Pre':['Start2','n2_1','Start3'],'Pos':['n2_1']},'SADMIND2':{'Pre':['n2_1'],'Pos':['Start3']},
+         'TCP3':{'Pre':['Start3','Start4','n3_1','n3_2'],'Pos':['Start4']},'FTP3':{'Pre':['Start4','n3_1'],'Pos':['n3_1']}, 'FTP-Data3':{'Pre':['Start4','n3_1'], 'Pos':['n3_2']},
+         'TCP4':{'Pre':['Start4','Start5','n4_1','n4_2','n4_4','n4_5','n4_6'],'Pos':['Start5']},'TELNET4':{'Pre':['Start5','n4_2'],'Pos':['n4_2']},'Portmap4':{'Pre':['Start5','n4_4','n4_3'],'Pos':['n4_3']},'SADMIND4':{'Pre':['n4_3'],'Pos':['n4_4']},
+         'FTP4':{'Pre':['Start5','n4_1'],'Pos':['n4_1']}, 'FTP-Data4':{'Pre':['Start5','n4_5'], 'Pos':['n4_5']},'UDP4':{'Pre':['n4_2'],'Pos':['n4_6']},
+         'ARP5':{'Pre':['Start5','n5_1'],'Pos':['n5_1']}, 'TCP5':{'Pre':['n5_1','n5_2','n5_3'],'Pos':['n5_2']},'TELNET5':{'Pre':['n5_2','n5_3'],'Pos':['n5_3']},'UDP5':{'Pre':['n5_3','n5_4'],'Pos':['n5_4']},'ICMP5':{'Pre':['n5_4'],'Pos':['End']},}
 
 #visiting relation
-TVdict = {'DNS': False, 'Portmap': False,'SADMIND': False, 'TCP': False,'FTP': False, 'FTP-Data': False,'TELNET': False,'UDP': False, 'ARP': False, 'ICMP': False}
+TVdict = {'DNS1': False,
+          'Portmap2': False,'SADMIND2': False,
+          'TCP3': False,'FTP3': False, 'FTP-Data3': False,
+          'TCP4': False,'TELNET4': False,'Portmap4': False,'SADMIND4': False, 'FTP4': False, 'FTP-Data4': False,'UDP4': False,
+          'ARP5': False, 'TCP5': False,'TELNET5': False,'UDP5':False,'ICMP5': False}
 
 #initial Token number
-Pdict ={'Start':0, 'P1':0, 'P2':0, 'P1':0, 'P2':0, 'P3':0, 'P4':0, 'P5':0, 'P6':0, 'P7':0, 'P8':0, 'P9':0, 'End':0}
+Ndict ={'Start1':0,'Start2':0,
+        'n2_1':0, 'Start3':0,
+        'Start4':0, 'n3_1':0, 'n3_2':0,
+        'Start5':0, 'n4_1':0, 'n4_2':0, 'n4_3':0, 'n4_4':0, 'n4_5':0, 'n4_6':0,
+        'n5_1':0, 'n5_2':0, 'n5_3':0, 'n5_4':0, 'End':0}
 
 def calfitness(sixToken,vdict):
     x = 0.001  #for denominator---minus result may because if it
@@ -23,7 +34,7 @@ def calfitness(sixToken,vdict):
     r = sixToken[3]
     n = sixToken[4]
     a = sixToken[5]
-    fitness = 1/3 * (1 - ((m+x)/(c+x))) + 1/3 * (1 - ((r+x)/(p+x))) + 1/3 * (1 - ((n+x)/(a+x)))    #for numerator and denominator all 0, fitness = 0
+    fitness =  1/3 * (1 - ((m+x)/(c+x))) + 1/3 * (1 - ((r+x)/(p+x))) + 1/3 * (1 - ((n+x)/(a+x)))     #for numerator and denominator all 0, fitness = 0
     s = 0
     for j in vdict.values():
         if j:
@@ -31,7 +42,7 @@ def calfitness(sixToken,vdict):
     #fitness = fitness*(s / len(vdict))
     return fitness
 
-def processflow(groupNum, Protocol, sixTlist, TVdictlist, Pdictlist,Time):
+def processflow(groupNum, Protocol, sixTlist, TVdictlist, Ndictlist,Time):
     sixTlist[groupNum][5] = sixTlist[groupNum][5] + 1  #total token number
     if Protocol not in TLdict:
         sixTlist[groupNum][4] = sixTlist[groupNum][4] + 1
@@ -41,10 +52,10 @@ def processflow(groupNum, Protocol, sixTlist, TVdictlist, Pdictlist,Time):
             TVdictlist[groupNum][Protocol] = 'First:'+ Time   #mark as visited
         for preP in TLdict[Protocol]['Pre']:
             #if preP == 'Start':
-            #    Pdictlist[groupNum][preP] = Pdictlist[groupNum][preP] + 1
+            #    Ndictlist[groupNum][preP] = Ndictlist[groupNum][preP] + 1
             #    sixTlist[groupNum][0] = sixTlist[groupNum][0] + 1
-            if (Pdictlist[groupNum][preP] > 0):
-                Pdictlist[groupNum][preP] = Pdictlist[groupNum][preP] - 1
+            if (Ndictlist[groupNum][preP] > 0):
+                Ndictlist[groupNum][preP] = Ndictlist[groupNum][preP] - 1
                 sixTlist[groupNum][1] = sixTlist[groupNum][1] + 1   #consume 1 token
                 break
         else:       #for else, if not consume, means missing
@@ -52,11 +63,11 @@ def processflow(groupNum, Protocol, sixTlist, TVdictlist, Pdictlist,Time):
             sixTlist[groupNum][1] = sixTlist[groupNum][1] + 1  # consume 1 token
 
         for posP in TLdict[Protocol]['Pos']:
-            Pdictlist[groupNum][posP] = Pdictlist[groupNum][posP] + 1
+            Ndictlist[groupNum][posP] = Ndictlist[groupNum][posP] + 1
             sixTlist[groupNum][0] = sixTlist[groupNum][0] + 1   #produce 1 token
         sixTlist[groupNum][3] = 0
-        for p in Pdict:
-            sixTlist[groupNum][3] = sixTlist[groupNum][3] + Pdictlist[groupNum][p]
+        for p in Ndict:
+            sixTlist[groupNum][3] = sixTlist[groupNum][3] + Ndictlist[groupNum][p]
         return calfitness(sixTlist[groupNum],TVdictlist[groupNum])
 
 
@@ -91,17 +102,20 @@ def dataprocessing():
     #initialization
     with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside.csv', 'r') as f: #test for 3000 cases
         reader = csv.reader(f)
-        result = [['SrcIp', 'DesIP','Protocol', 'SrcPort', 'DesPort', 'First time', 'Last time']]       #the result of output file
+        result = [['SrcIp > DesIP','Protocol', 'SrcPort', 'DesPort', 'Time']]       #the result of output file
         group = 0                       #one group output one file
+        fT = 0.7                        #fitness threshold to enter next step
+        tT = 500                         #time interval threshold to enter next step
         validInterval = 10000           #interval between Ip last and current appearance
         IpGroup = collections.defaultdict(int)
         IpLastTime = collections.defaultdict(str)
         SrcIpFreq = collections.defaultdict(int)
         DesIpFreq = collections.defaultdict(int)
-        Flist = ['fitness']
+        Flist = ['fitness']     #the fitness for each group
+        stepList = ['step']     #the step for each group
         sixTlist = [['p','c','m','r','n','a']]
         visitTgroup = [TVdict]
-        tokenNumgroup = [Pdict]
+        tokenNumgroup = [Ndict]
         #relatedIpDict = collections.defaultdict(int)
         for (i,l) in enumerate(reader):
 
@@ -132,13 +146,21 @@ def dataprocessing():
                         IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
                         print('Initialize SrcIp ', l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'],  l['Info'], 'Attack tree group = ', IpGroup[l['SrcIp']])
                         result.append([])
+                        stepList.append(1)
                         sixTlist.append([1,0,0,0,0,0])
                         visitTgroup.append(
-                            {'DNS': False, 'Portmap': False, 'SADMIND': False, 'TCP': False, 'FTP': False,
-                             'FTP-Data': False, 'TELNET': False, 'UDP': False, 'ARP': False, 'ICMP': False})
+                            {'DNS1': False,
+                             'Portmap2': False, 'SADMIND2': False,
+                             'TCP3': False, 'FTP3': False, 'FTP-Data3': False,
+                             'TCP4': False, 'TELNET4': False, 'Portmap4': False, 'SADMIND4': False, 'FTP4': False,
+                             'FTP-Data4': False, 'UDP4': False,
+                             'ARP5': False, 'TCP5': False, 'TELNET5': False, 'UDP5': False, 'ICMP5': False})
                         tokenNumgroup.append(
-                            {'Start': 0, 'P1': 0, 'P2': 0, 'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'P5': 0, 'P6': 0,
-                             'P7': 0, 'P8': 0, 'P9': 0, 'End': 0})
+                            {'Start1': 1, 'Start2': 0,
+                             'n2_1': 0, 'Start3': 0,
+                             'Start4': 0, 'n3_1': 0, 'n3_2': 0,
+                             'Start5': 0, 'n4_1': 0, 'n4_2': 0, 'n4_3': 0, 'n4_4': 0, 'n4_5': 0, 'n4_6': 0,
+                             'n5_1': 0, 'n5_2': 0, 'n5_3': 0, 'n5_4': 0, 'End': 0})
                         Flist.append(0)
                     else:                                           #but Src as Des before
                         #relatedIpDict[l['SrcIp']] = relatedIpDict[l['SrcIp']] + 1
@@ -149,9 +171,15 @@ def dataprocessing():
                             print(l['SrcIp'], ' > ', l['DesIp'],  ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
                             #aggregation(result[IpGroup[l['SrcIp']]],
                             #            [l['SrcIp'], l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Time']]) #IP initialize: first appear time = last appear time
-                            result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
-                            fitness = processflow(IpGroup[l['SrcIp']], l['Protocol'], sixTlist, visitTgroup, tokenNumgroup,l['Time'])
+                            if (len(result[IpGroup[l['SrcIp']]]) > 1):
+                                lastT = result[IpGroup[l['SrcIp']]][-1][-1]
+                            else:
+                                lastT = 0
+                            result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
+                            fitness = processflow(IpGroup[l['SrcIp']], l['Protocol']+str(stepList[IpGroup[l['SrcIp']]]), sixTlist, visitTgroup, tokenNumgroup,l['Time'])
                             Flist[IpGroup[l['SrcIp']]]= fitness
+                            if (fitness > fT) and (not validTimeGap(lastT,l['Time'],tT)):
+                                stepList[IpGroup[l['SrcIp']]] = stepList[IpGroup[l['SrcIp']]] + 1
                         else:                                                       #otherwise, break and create a new path
                             IpLastTime[l['SrcIp']] = l['Time']
                             IpLastTime[l['DesIp']] = l['Time']
@@ -162,13 +190,18 @@ def dataprocessing():
                                   'Attack tree group = ', IpGroup[l['SrcIp']])
                             #result.append([['Ip', 'Time', 'Type']])
                             result.append([])
+                            stepList.append(1)
                             sixTlist.append([0, 0, 0, 0, 0, 0])
                             visitTgroup.append({'DNS': False, 'Portmap': False,'SADMIND': False, 'TCP': False,'FTP': False, 'FTP-Data': False,'TELNET': False,'UDP': False, 'ARP': False, 'ICMP': False})
-                            tokenNumgroup.append({'Start':0, 'P1':0, 'P2':0, 'P1':0, 'P2':0, 'P3':0, 'P4':0, 'P5':0, 'P6':0, 'P7':0, 'P8':0, 'P9':0, 'End':0})
+                            tokenNumgroup.append({'Start1':0,'Start2':0,
+                            'n2_1':0, 'Start3':0,
+                            'Start4':0, 'n3_1':0, 'n3_2':0,
+                            'Start5':0, 'n4_1':0, 'n4_2':0, 'n4_3':0, 'n4_4':0, 'n4_5':0, 'n4_6':0,
+                            'n5_1':0, 'n5_2':0, 'n5_3':0, 'n5_4':0, 'End':0})
                             Flist.append(0)
                             #aggregation(result[IpGroup[l['SrcIp']]],
                             #            [l['SrcIp'], l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Time']]) #IP initialize: first appear time = last appear time
-                            result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
+                            result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
                 else:                                               #SrcIp as Src before
                     if (validTimeGap(IpLastTime[l['SrcIp']], l['Time'], validInterval)):   #if the time interval between Ip current and last appearance, link the path
                         IpLastTime[l['SrcIp']] = l['Time']
@@ -176,11 +209,17 @@ def dataprocessing():
                         SrcIpFreq[l['SrcIp']] = SrcIpFreq[l['SrcIp']] + 1
                         IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
                         print(l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
-                        fitness = processflow(IpGroup[l['SrcIp']], l['Protocol'], sixTlist, visitTgroup, tokenNumgroup,l['Time'])
+                        fitness = processflow(IpGroup[l['SrcIp']], l['Protocol']+str(stepList[IpGroup[l['SrcIp']]]), sixTlist, visitTgroup, tokenNumgroup,l['Time'])
                         Flist[IpGroup[l['SrcIp']]]= fitness
                         #aggregation(result[IpGroup[l['SrcIp']]],
                         #            [l['SrcIp'], l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], '-',l['Time']])
-                        result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
+                        if (len(result[IpGroup[l['SrcIp']]]) > 1):
+                            lastT = result[IpGroup[l['SrcIp']]][-1][-1]
+                        else:
+                            lastT = 0
+                        result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
+                        if (fitness > fT) and (not validTimeGap(lastT, l['Time'],tT)):
+                            stepList[IpGroup[l['SrcIp']]] = stepList[IpGroup[l['SrcIp']]] + 1
                     else:                                                       # otherwise, break and create a new path
                         IpLastTime[l['SrcIp']] = l['Time']
                         IpLastTime[l['DesIp']] = l['Time']
@@ -192,17 +231,25 @@ def dataprocessing():
                               'Attack tree group = ', IpGroup[l['SrcIp']])
                         # result.append([['Ip', 'Time', 'Type']])
                         result.append([])
+                        stepList.append(1)
                         sixTlist.append([0, 0, 0, 0, 0, 0])
                         visitTgroup.append(
-                            {'DNS': False, 'Portmap': False, 'SADMIND': False, 'TCP': False, 'FTP': False,
-                             'FTP-Data': False, 'TELNET': False, 'UDP': False, 'ARP': False, 'ICMP': False})
+                            {'DNS1': False,
+                             'Portmap2': False, 'SADMIND2': False,
+                             'TCP3': False, 'FTP3': False, 'FTP-Data3': False,
+                             'TCP4': False, 'TELNET4': False, 'Portmap4': False, 'SADMIND4': False, 'FTP4': False,
+                             'FTP-Data4': False, 'UDP4': False,
+                             'ARP5': False, 'TCP5': False, 'TELNET5': False, 'UDP5': False, 'ICMP5': False})
                         tokenNumgroup.append(
-                            {'Start': 0, 'P1': 0, 'P2': 0, 'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'P5': 0, 'P6': 0,
-                             'P7': 0, 'P8': 0, 'P9': 0, 'End': 0})
+                            {'Start1': 1, 'Start2': 0,
+                             'n2_1': 0, 'Start3': 0,
+                             'Start4': 0, 'n3_1': 0, 'n3_2': 0,
+                             'Start5': 0, 'n4_1': 0, 'n4_2': 0, 'n4_3': 0, 'n4_4': 0, 'n4_5': 0, 'n4_6': 0,
+                             'n5_1': 0, 'n5_2': 0, 'n5_3': 0, 'n5_4': 0, 'End': 0})
                         Flist.append(0)
                         #aggregation(result[IpGroup[l['SrcIp']]],
                         #           [l['SrcIp'], l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Time']])
-                        result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort']])
+                        result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
 
                 #add the destioation Ips to the frequency dictionary,  the previous des and the current des
                 if (DesIpFreq[l['DesIp']] == 0):
@@ -215,7 +262,7 @@ def dataprocessing():
         #    print('relatedIp = ', relatedIp, 'relatedFreq = ', relatedIpDict[relatedIp])
 
         groupNum = len(result) - 1
-        name = ['SrcIp > DesIp', 'Protocol', 'SrcPort', 'DesPort']
+        name = ['SrcIp > DesIp', 'Protocol', 'SrcPort', 'DesPort','Time']
         for i in range (1, groupNum+1):
             IpPairNum = len(result[i])
             if IpPairNum > 1:
@@ -224,13 +271,14 @@ def dataprocessing():
                 #visualization(result[i],'graph_group'+ str(i))
         #print(result)
         fitdata = pd.DataFrame(columns=['fitness'], data=Flist)
-        fitdata.to_csv('/home/jin/Documents/Generated Data/data_group fitness-before')
+        fitdata.to_csv('/home/jin/Documents/Generated Data/data_group fitness')
         print('output done')
 
         sixTlistdata = pd.DataFrame(columns=['p','c','m','r','n','a'], data=sixTlist)
         sixTlistdata.to_csv('/home/jin/Documents/Generated Data/data_group tokenNum')
         print('output done')
 
+'''    
         Plist = []
         for j in tokenNumgroup:
             Plist.append(j.values())
@@ -244,6 +292,7 @@ def dataprocessing():
         Vlistdata = pd.DataFrame(columns=['DNS', 'Portmap','SADMIND', 'TCP','FTP', 'FTP-Data','TELNET','UDP', 'ARP', 'ICMP'], data= Vlist)
         Vlistdata.to_csv('/home/jin/Documents/Generated Data/data_group visitedornot')
         print('output done')
+        '''
 
 if __name__ == '__main__':
     dataprocessing()
