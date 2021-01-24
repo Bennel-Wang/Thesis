@@ -3,6 +3,8 @@ import csv
 import re
 import pandas as pd
 from graphviz import Digraph
+#add how many step finally have
+#time threshold to separate steps can be calculated from relative value inside step
 
 #linking relation
 TLdict = {'DNS':{'Pre':['Start','P1'],'Pos':['P1']}, 'Portmap':{'Pre':['P1','P2','P3','P4'],'Pos':['P2']},'SADMIND':{'Pre':['P2'],'Pos':['P3']},

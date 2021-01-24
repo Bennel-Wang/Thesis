@@ -35,10 +35,10 @@ def calfitness(sixToken,vdict):
     n = sixToken[4]
     a = sixToken[5]
     fitness =  1/3 * (1 - ((m+x)/(c+x))) + 1/3 * (1 - ((r+x)/(p+x))) + 1/3 * (1 - ((n+x)/(a+x)))     #for numerator and denominator all 0, fitness = 0
-    s = 0
-    for j in vdict.values():
-        if j:
-            s = s + 1
+    #s = 0
+    #for j in vdict.values():
+    #    if j:
+    #        s = s + 1
     #fitness = fitness*(s / len(vdict))
     return fitness
 
@@ -100,11 +100,11 @@ def validTimeGap(timeFormer, timeLatter, validGap):
 
 def dataprocessing():
     #initialization
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside.csv', 'r') as f: #test for 3000 cases
+    with open('/home/jin/Documents/LLS_DDOS 1.0 inside.csv', 'r') as f: #test for 3000 cases
         reader = csv.reader(f)
         result = [['SrcIp > DesIP','Protocol', 'SrcPort', 'DesPort', 'Time']]       #the result of output file
         group = 0                       #one group output one file
-        fT = 0.7                        #fitness threshold to enter next step
+        fT = 0.67                        #fitness threshold to enter next step
         tT = 500                         #time interval threshold to enter next step
         validInterval = 10000           #interval between Ip last and current appearance
         IpGroup = collections.defaultdict(int)
@@ -270,7 +270,10 @@ def dataprocessing():
                 data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
                 #visualization(result[i],'graph_group'+ str(i))
         #print(result)
-        fitdata = pd.DataFrame(columns=['fitness'], data=Flist)
+        fs = ['fitness*step']
+        for i in range (1, groupNum+1):
+            fs.append(Flist[i]*stepList[i]/6)
+        fitdata = pd.DataFrame(columns=['fitness'], data=fs)
         fitdata.to_csv('/home/jin/Documents/Generated Data/data_group fitness')
         print('output done')
 
