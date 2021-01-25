@@ -26,12 +26,12 @@ LauDDoS_A = {'4*TCP':{'Pre':['P2','P4'],'Pos':['End']},'3*TCP':{'Pre':['Start'],
              '1*SA':{'Pre':['P2'],'Pos':['P1']},'2*SA':{'Pre':['P4'],'Pos':['P3']}}
 LauDDoS_P = {'Start':0, 'P1':0, 'P2':0, 'P3':0, 'P4':0, 'End':0}
 
-DNSServer_A = {'1*DNS':{'Pre':['Start'],'Pos':['End']}, '1*SA':{'Pre':['End'], 'Pos':['Start']}}
+DNSServer_A = {'2*DNS':{'Pre':['Start'],'Pos':['End']}, '1*SA':{'Pre':['End'], 'Pos':['Start']}}
 DNSServer_P = {'Start':0, 'End': 0}
 
 FTPUpload_A = {'4*TCP':{'Pre':['P3'],'Pos':['End']},'3*TCP':{'Pre':['Start'],'Pos':['P1']}, '1*TCP':{'Pre':['P1'],'Pos':['P2']},
                '2*FTP-Data':{'Pre':['P2'],'Pos':['P3']}, '2*FTP':{'Pre':['P1'],'Pos':['P3']},
-               '1*SA':{'Pre':['P3'],'Pos':['P1']},'2*SA':{'Pre':['End'],'Pos':['Start']},}
+               '1*SA':{'Pre':['P3'],'Pos':['P1']},'2*SA':{'Pre':['End'],'Pos':['Start']}}
 FTPUpload_P = {'Start':0, 'P1':0, 'P2':0, 'P3':0, 'End':0}
 
 Attack0_A = [IPsweep_A, DAESAD_A, BreakSAD_A, InsDDoS_A, LauDDoS_A]
@@ -40,13 +40,13 @@ Attack0_P = [IPsweep_P.copy(), DAESAD_P.copy(), BreakSAD_P.copy(), InsDDoS_P.cop
 Attack1_A = [DNSServer_A, BreakSAD_A, FTPUpload_A, LauDDoS_A, BreakSAD_A, FTPUpload_A, LauDDoS_A]
 Attack1_P = [DNSServer_P.copy(), BreakSAD_P.copy(), FTPUpload_P.copy(), LauDDoS_P.copy(), BreakSAD_P.copy(), FTPUpload_P.copy(), LauDDoS_P.copy()]
 
-AttackList = [[Attack0_A, Attack1_P], [Attack1_A,Attack1_P]]
+AttackList = [[Attack0_A, Attack0_P], [Attack1_A,Attack1_P]]
 
 #In: 4 tokens list
 #Out: improved fitness value
 #Function: calculate fitness
 def calFitness(fourToken):
-    x = 1                #for inner loop improvement parameter
+    x = 0.5              #for inner loop improvement parameter
     p = fourToken[0]     #produced
     c = fourToken[1]     #consumed
     m = fourToken[2]     #missed
@@ -88,21 +88,26 @@ def isProPattern(attackL,stepL,Protocol,group):
 #    Attack list, two dimensional list of step for each attack and group, three dimensional list for four token of group and attack,group for this protocol
 #Out: /
 #Function: group the protocol into protocol list for each group, if the interval is bigger than threshold, let protocol list flow and let step transits.
-def processFlow (proL,lastAppT,curT,Protocol,attackL,stepL,fourTokenL,group):
+def processFlow (proL,lastAppT,curT,lastProtocol,attackL,stepL,fourTokenL,group):
     thresholdT = 2                                                  #minimum time threshold to split two step
     stepTran = False                                                #whether step transition has been performed for any attack
-    if isProPattern(attackL,stepL,Protocol,group):                  #protocol belong to at least one of the transitting attack pattern
-        if validTimeGap(lastAppT[group], curT, thresholdT):
-            proL[group].append(Protocol)
-        else:
-            for (i,attack) in enumerate(attackL):
-                fitness = protoListFlow(proL[group],fourTokenL[group][i],attack,stepL[group][i])
-                if stepTransit(fitness) and stepL[group][i] < len(attack[0]):
-                    proL[group]= [Protocol]
-                    stepL[group][i] = stepL[group][i] + 1
-                    stepTran = True
-            if not stepTran:
-                proL[group].append(Protocol)
+    #if isProPattern(attackL,stepL,Protocol,group):                  #protocol belong to at least one of the transitting attack pattern
+    if validTimeGap(lastAppT[group], curT, thresholdT):
+        if lastProtocol != '1*Begin':
+            proL[group].append(lastProtocol)
+    else:
+        for (i,attack) in enumerate(attackL):
+            fitness = protoListFlow(proL[group],fourTokenL[group][i],attack,stepL[group][i])
+            if stepTransit (fitness) and stepL[group][i] < len(attack[1])-1:
+                print(proL[group])
+                print(fourTokenL[group][i])
+                print('group = ',group,'step=',stepL[group][i] + 1,'fitness=', fitness,'protocol=',lastProtocol,'current time=',curT)
+                proL[group]= [lastProtocol]
+                stepL[group][i] = stepL[group][i] + 1
+                stepTran = True
+        if not stepTran:
+            if lastProtocol != '1*Begin':
+                proL[group].append(lastProtocol)
     return
 
 
@@ -152,11 +157,12 @@ def tokenFlow(protocol, net_A, net_P, fourToken, step):
     else:
         for preP in net_A[protocol]['Pre']:
             for act in net_A:
-                if act.split('*')[1] == 'SA' and preP == net_A[act]['Pos'] and net_P[preP]==0:  #SA only execute when miss
-                    tokenFlow(act, net_A,net_P, fourToken, step)        #SA can also miss/remain
-            print(net_P,preP,step)
+                if act.split('*')[1] == 'SA' and preP == net_A[act]['Pos'] and net_P[preP] == 0:  #SA only execute when miss
+                    tokenFlow(act, net_A, net_P, fourToken, step)        #SA can also miss/remain
+            #print(net_P, fourToken, step)
             consumeToken(net_P, preP, fourToken)
         for posP in net_A[protocol]['Pos']:
+            #print(posP,protocol,net_P,net_A,step)
             produceToken(net_P, posP, fourToken)
         return
 
@@ -165,12 +171,12 @@ def tokenFlow(protocol, net_A, net_P, fourToken, step):
 #    current time, last protocol for that group,last appeared time list for each group, time for this protocol, protocol group pattern
 #Out: protocol inner grouping result(last protocol)
 #Function: get the last protocol, execute the process flow
-def protocolProcessing(proL, protocol, attackL, stepL, fourTokenL, time, lastProtocol, lastAppT, group):
-    thresholdT = 0.001
-    if protocol == lastProtocol.split('*')[1] and validTimeGap(lastAppT[group],time,thresholdT):
-        res = lastProtocol.split('*')[0] + '*' + protocol
+def protocolProcessing(proL, protocol, attackL, stepL, fourTokenL, LastTime, lastProtocol, lastTwoTime, group):
+    thresholdT = 0.002
+    if protocol == lastProtocol.split('*')[1] and validTimeGap(lastTwoTime[group],LastTime,thresholdT):
+        res = str((int(lastProtocol.split('*')[0])+1)) + '*' + protocol
     else:
-        processFlow(proL, lastAppT, time, lastProtocol, attackL, stepL, fourTokenL, group)
+        processFlow(proL, lastTwoTime, LastTime, lastProtocol, attackL, stepL, fourTokenL, group)
         res = '1*' + protocol
     return res
 
@@ -179,7 +185,7 @@ def protocolProcessing(proL, protocol, attackL, stepL, fourTokenL, time, lastPro
 #
 def dataprocessing():
     #initialization
-    with open('/home/jin/Documents/LLS_DDOS 1.0 inside.csv', 'r') as f: #test for 3000 cases
+    with open('/home/jin/Documents/LLS_DDOS 2.0 inside.csv', 'r') as f: #test for 3000 cases
         reader = csv.reader(f)
         result = []                                                     #the result of output file
         protocolList = []
@@ -191,6 +197,7 @@ def dataprocessing():
         DesIpFreq = collections.defaultdict(int)
         lastProtocol = collections.defaultdict(str)
         lastTime  = collections.defaultdict(str)
+        lastTwoTime  = collections.defaultdict(str)
 
         for (i,l) in enumerate(reader):
             # remove the head
@@ -219,50 +226,53 @@ def dataprocessing():
                         stepList.append([0]*len(AttackList))
                         fourTokenList.append([[0,0,0,0]]*len(AttackList))
                         lastTime[IpGroup[l['SrcIp']]] = '0.0'
+                        lastTwoTime[IpGroup[l['SrcIp']]] = '0.0'
                         lastProtocol[IpGroup[l['SrcIp']]] ='1*Begin'
-                        lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList, stepList, fourTokenList, l['Time'], lastProtocol[IpGroup[l['SrcIp']]], lastTime,
+                        lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList, stepList, fourTokenList, lastTime[IpGroup[l['SrcIp']]], lastProtocol[IpGroup[l['SrcIp']]], lastTwoTime,
                                            IpGroup[l['SrcIp']])
+                        #print(stepList[IpGroup[l['SrcIp']]])
+                        lastTwoTime[IpGroup[l['SrcIp']]] = lastTime[IpGroup[l['SrcIp']]]
                         lastTime[IpGroup[l['SrcIp']]] = l['Time']
-                        print('Initialize SrcIp ', l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'],  l['Info'], 'Attack tree group = ', IpGroup[l['SrcIp']])
+                        #print('Initialize SrcIp ', l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'],  l['Info'], 'Attack tree group = ', IpGroup[l['SrcIp']])
                         result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
                     else:                                           #but Src as Des before
                         IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]   #link the path
-                        print(l['SrcIp'], ' > ', l['DesIp'],  ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
+                        #print(l['SrcIp'], ' > ', l['DesIp'],  ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
                         result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
-                        lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList, stepList, fourTokenList, l['Time'], lastProtocol[IpGroup[l['SrcIp']]], lastTime,
+                        lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList, stepList, fourTokenList, lastTime[IpGroup[l['SrcIp']]], lastProtocol[IpGroup[l['SrcIp']]], lastTwoTime,
                                            IpGroup[l['SrcIp']])
+                        #print(stepList[IpGroup[l['SrcIp']]])
+                        lastTwoTime[IpGroup[l['SrcIp']]] = lastTime[IpGroup[l['SrcIp']]]
                         lastTime[IpGroup[l['SrcIp']]] = l['Time']
                 else:                                               #SrcIp as Src before
                     IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
-                    print(l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
+                    #print(l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
                     result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
-                    lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList, stepList,
-                                                             fourTokenList, l['Time'],lastProtocol[IpGroup[l['SrcIp']]], lastTime,
-                                                             IpGroup[l['SrcIp']])
-                    lastTime[IpGroup[l['SrcIp']]]  = l['Time']
+                    lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList,
+                                                                           stepList, fourTokenList,
+                                                                           lastTime[IpGroup[l['SrcIp']]],
+                                                                           lastProtocol[IpGroup[l['SrcIp']]],
+                                                                           lastTwoTime,
+                                                                           IpGroup[l['SrcIp']])
+                    #print(stepList[IpGroup[l['SrcIp']]])
+                    lastTwoTime[IpGroup[l['SrcIp']]] = lastTime[IpGroup[l['SrcIp']]]
+                    lastTime[IpGroup[l['SrcIp']]] = l['Time']
 
                 #add the destioation Ips to the frequency dictionary,  the previous des and the current des
                 SrcIpFreq[l['SrcIp']] = SrcIpFreq[l['SrcIp']] + 1
                 DesIpFreq[l['DesIp']] = DesIpFreq[l['DesIp']] + 1
 
-        #for relatedIp in relatedIpDict:
-        #    print('relatedIp = ', relatedIp, 'relatedFreq = ', relatedIpDict[relatedIp])
-
-        groupNum = len(result) - 1
-        #name = ['SrcIp > DesIp', 'Protocol', 'SrcPort', 'DesPort','Time']
-        #for i in range (1, groupNum+1):
-        #    IpPairNum = len(result[i])
-        #    if IpPairNum > 1:
-        #        data = pd.DataFrame(columns = name, data = result[i])
-        #        data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
-                #visualization(result[i],'graph_group'+ str(i))
-        #print(result)
-        #step = ['Attack0','Attack1']
-        #for i in range (0, groupNum):
-        #    fs.append(Flist[i]*stepList[i]/6)
         stepdata = pd.DataFrame(columns=['attack0','attack1'], data=stepList)
         stepdata.to_csv('/home/jin/Documents/Generated Data/data_group step')
         print('output done')
+
+        groupNum = len(result) - 1
+        name = ['SrcIp > DesIp', 'Protocol', 'SrcPort', 'DesPort','Time']
+        for i in range (0, groupNum+1):
+            IpPairNum = len(result[i])
+            if IpPairNum > 1:
+                data = pd.DataFrame(columns = name, data = result[i])
+                data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
 
         #sixTlistdata = pd.DataFrame(columns=['p','c','m','r','n','a'], data=sixTlist)
         #sixTlistdata.to_csv('/home/jin/Documents/Generated Data/data_group tokenNum')
