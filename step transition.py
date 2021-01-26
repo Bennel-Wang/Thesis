@@ -6,33 +6,34 @@ import pandas as pd
 IPsweep_A = {'2*ICMP':{'Pre':['Start'],'Pos':['End']}, '1*SA':{'Pre':['End'], 'Pos':['Start']}}
 IPsweep_P = {'Start':0,'End': 0}
 
-DAESAD_A = {'2*Portmap':{'Pre':['Start'],'Pos':['P1']},'2*SADMIND':{'Pre':['P1'],'Pos':['P2']},
-            '1*SADMIND':{'Pre':['P3'],'Pos':['P4']}, '1*ICMP':{'Pre':['P4'],'Pos':['End']},
-            '1*SA':{'Pre':['P2'], 'Pos':['Start']}, '2*SA':{'Pre':['P2'], 'Pos':['P3']},
-            '3*SA':{'Pre':['End'], 'Pos':['P3']}, '4*SA':{'Pre':['End'], 'Pos':['Start']}}
-DAESAD_P = {'Start':0, 'P1':0, 'P2':0, 'P3':0, 'P4':0, 'End':0}
+DAESAD_A = {'1*Portmap':{'Pre':['Start'],'Pos':['P1']}, '1*ICMP':{'Pre':['P1'],'Pos':['End']},
+            '1*SA':{'Pre':['End'],'Pos':['Start']}}
+DAESAD_P = {'Start':0, 'P1':0,'End':0}
 
 BreakSAD_A = {'2*Portmap':{'Pre':['Start'],'Pos':['P1']}, '1*SADMIND':{'Pre':['P1'],'Pos':['End']},
             '1*SA':{'Pre':['End'],'Pos':['Start']}}
 BreakSAD_P = {'Start':0, 'P1':0,'End':0}
 
 InsDDoS_A = {'4*TCP':{'Pre':['P2'],'Pos':['End']},'3*TCP':{'Pre':['Start'],'Pos':['P1']},
-             '1*RSH':{'Pre':['P1'],'Pos':['P2']},'1*SA':{'Pre':['P2'],'Pos':['P1']},
-           '2*SA':{'Pre':['End'],'Pos':['Start']}}
+             '1*RSH':{'Pre':['P1'],'Pos':['P2']},'2*RSH':{'Pre':['P1'],'Pos':['P2']},'3*RSH':{'Pre':['P1'],'Pos':['P2']},
+             '4*RSH':{'Pre':['P1'],'Pos':['P2']},'5*RSH':{'Pre':['P1'],'Pos':['P2']},'6*RSH':{'Pre':['P1'],'Pos':['P2']},
+             '1*SA':{'Pre':['P2'],'Pos':['P1']},'2*SA':{'Pre':['End'],'Pos':['Start']}}
 InsDDoS_P = {'Start':0, 'P1':0, 'P2':0, 'End':0}
 
-LauDDoS_A = {'4*TCP':{'Pre':['P2','P4'],'Pos':['End']},'3*TCP':{'Pre':['Start'],'Pos':['P1','P3']},
-             '1*TCP':{'Pre':['P1'],'Pos':['P2']},'1*TELNET':{'Pre':['P3'],'Pos':['P4']},
+LauDDoS_A = {'3*TCP':{'Pre':['Start'],'Pos':['P1','P3']},
+             '1*TCP':{'Pre':['P1'],'Pos':['P2']},'1*TELNET':{'Pre':['P3'],'Pos':['P4']},'4*TCP':{'Pre':['P2','P4'],'Pos':['End']},
              '1*SA':{'Pre':['P2'],'Pos':['P1']},'2*SA':{'Pre':['P4'],'Pos':['P3']}}
 LauDDoS_P = {'Start':0, 'P1':0, 'P2':0, 'P3':0, 'P4':0, 'End':0}
 
 DNSServer_A = {'2*DNS':{'Pre':['Start'],'Pos':['End']}, '1*SA':{'Pre':['End'], 'Pos':['Start']}}
 DNSServer_P = {'Start':0, 'End': 0}
 
-FTPUpload_A = {'4*TCP':{'Pre':['P3'],'Pos':['End']},'3*TCP':{'Pre':['Start'],'Pos':['P1']}, '1*TCP':{'Pre':['P1'],'Pos':['P2']},
-               '2*FTP-Data':{'Pre':['P2'],'Pos':['P3']}, '2*FTP':{'Pre':['P1'],'Pos':['P3']},
-               '1*SA':{'Pre':['P3'],'Pos':['P1']},'2*SA':{'Pre':['End'],'Pos':['Start']}}
-FTPUpload_P = {'Start':0, 'P1':0, 'P2':0, 'P3':0, 'End':0}
+#FTPUpload_A = {'3*TCP':{'Pre':['Start'],'Pos':['P1']}, '1*TCP':{'Pre':['P1'],'Pos':['P2']},
+#               '2*FTP-DATA':{'Pre':['P2'],'Pos':['P3']},
+#               '1*SA':{'Pre':['P3'],'Pos':['P1']},'2*SA':{'Pre':['End'],'Pos':['Start']},'4*TCP':{'Pre':['P3'],'Pos':['End']}}
+#FTPUpload_P = {'Start':0, 'P1':0, 'P2':0, 'P3':0, 'End':0}
+FTPUpload_A = {'1*TCP':{'Pre':['Start'],'Pos':['P1']},'2*FTP-DATA':{'Pre':['P1'],'Pos':['End']},'1*SA':{'Pre':['End'], 'Pos':['Start']}}
+FTPUpload_P = {'Start':0, 'P1':0, 'End':0}
 
 Attack0_A = [IPsweep_A, DAESAD_A, BreakSAD_A, InsDDoS_A, LauDDoS_A]
 Attack0_P = [IPsweep_P.copy(), DAESAD_P.copy(), BreakSAD_P.copy(), InsDDoS_P.copy(), LauDDoS_P.copy()]
@@ -46,7 +47,7 @@ AttackList = [[Attack0_A, Attack0_P], [Attack1_A,Attack1_P]]
 #Out: improved fitness value
 #Function: calculate fitness
 def calFitness(fourToken):
-    x = 0.3              #for inner loop improvement parameter
+    x = 0.45             #for inner loop improvement parameter
     p = fourToken[0]     #produced
     c = fourToken[1]     #consumed
     m = fourToken[2]     #missed
@@ -89,23 +90,30 @@ def isProPattern(attackL,stepL,Protocol,group):
 #Out: /
 #Function: group the protocol into protocol list for each group, if the interval is bigger than threshold, let protocol list flow and let step transits.
 def processFlow (proL,lastGroupT,groupT,groupProtocol,attackL,stepL,fourTokenL,group):
-    thresholdT = 20                                                  #minimum time threshold to split two step
+    thresholdT = 5                                                  #minimum time threshold to split two step
     stepTran = False                                                #whether step transition has been performed for any attack
     #if isProPattern(attackL,stepL,Protocol,group):                  #protocol belong to at least one of the transitting attack pattern
-    if validTimeGap(lastGroupT, groupT, thresholdT):
+    if validTimeGap(lastGroupT, groupT, thresholdT) and isProPattern(attackL,stepL,groupProtocol,group):
         if groupProtocol != '1*Begin':
             proL[group].append(groupProtocol)
     else:
         for (i,attack) in enumerate(attackL):
-            fitness = protoListFlow(proL[group],fourTokenL[group][i],attack,stepL[group][i])
-            if stepTransit (fitness) and stepL[group][i] < len(attack[1])-1:
+            fourTokenL[group][i] = [0,0,0,0]
+            fitness = protoListFlow(proL[group],fourTokenL[group][i],attack,stepL[group][i],group,i)
+            if group == 24 and i == 1:
                 print(proL[group])
                 print(fourTokenL[group][i])
-                print('group = ',group,'step=',stepL[group][i] + 1,'fitness=', fitness,'current protocol=',groupProtocol,'last group time=',lastGroupT)
+                print('group = ', group, 'step=', stepL[group][i] + 1,'attackNum=',i, 'fitness=', fitness, 'group time=', lastGroupT)
+            if stepTransit (fitness) and stepL[group][i] < len(attack[1])-1:
+                #if group == 24 and i == 1:
+                #    print(proL[group])
+                #    print(fourTokenL[group][i])
+                #    print('group = ', group, 'step=', stepL[group][i] + 1, 'attackNum=', i, 'fitness=', fitness,
+                #          'group time=', lastGroupT)
                 proL[group]= [groupProtocol]
                 stepL[group][i] = stepL[group][i] + 1
                 stepTran = True
-        if not stepTran:
+        if not stepTran and isProPattern(attackL,stepL,groupProtocol,group):
             if groupProtocol != '1*Begin':
                 proL[group].append(groupProtocol)
     return
@@ -114,12 +122,14 @@ def processFlow (proL,lastGroupT,groupT,groupProtocol,attackL,stepL,fourTokenL,g
 #In: two dimensional Protocol list for each group of each attack, three dimensional four token list for each group of each attack,group number
 #Out: fitness of the protocol list for the attack
 #Function: calculate the four token of the list of protocol
-def protoListFlow (proL, fourToken,attack, step):
+def protoListFlow (proL, fourToken, attack, step,group,attackNum):
     net_A = attack[0][step]
     net_P = attack[1][step].copy()
     for protocol in proL:
         tokenFlow(protocol, net_A, net_P, fourToken, step)
     fitness = calFitness(fourToken)
+    if group == 24 and attackNum == 1:
+        print(net_P,fourToken)
     return fitness
 
 #In:petri net, pos node, four token list
@@ -128,7 +138,7 @@ def protoListFlow (proL, fourToken,attack, step):
 def consumeToken(net_P,node,fourToken):
     if net_P[node] > 0:
         net_P[node] = net_P[node] - 1
-        fourToken[1] = fourToken[1] + 1
+        fourToken[1] = fourToken[1] + 1  # consume 1 token
     elif node != 'Start':
         fourToken[2] = fourToken[2] + 1  # miss 1 token
         fourToken[1] = fourToken[1] + 1  # consume 1 token
@@ -157,7 +167,7 @@ def tokenFlow(protocol, net_A, net_P, fourToken, step):
     else:
         for preP in net_A[protocol]['Pre']:
             for act in net_A:
-                if act.split('*')[1] == 'SA' and preP == net_A[act]['Pos'] and net_P[preP] == 0:  #SA only execute when miss
+                if act.split('*')[1] == 'SA' and preP == net_A[act]['Pos'] and net_P[preP] <= 0:  #SA only execute when miss
                     tokenFlow(act, net_A, net_P, fourToken, step)        #SA can also miss/remain
             #print(net_P, fourToken, step)
             consumeToken(net_P, preP, fourToken)
@@ -172,7 +182,7 @@ def tokenFlow(protocol, net_A, net_P, fourToken, step):
 #Out: protocol inner grouping result(last protocol)
 #Function: get the last protocol, execute the process flow
 def protocolProcessing(proL, protocol, attackL, stepL, fourTokenL, time, lastGProtocol, lastAppT, groupT, lastGroupT, group):
-    thresholdT = 0.002
+    thresholdT = 0.0035
     if protocol == lastGProtocol.split('*')[1] and validTimeGap(lastAppT[group],time,thresholdT):
         res = str((int(lastGProtocol.split('*')[0])+1)) + '*' + protocol
         groupT[group] = time
