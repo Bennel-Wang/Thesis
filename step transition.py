@@ -14,16 +14,19 @@ BreakSAD_A = {'2*Portmap':{'Pre':['Start'],'Pos':['P1']}, '1*SADMIND':{'Pre':['P
             '1*SA':{'Pre':['End'],'Pos':['Start']}}
 BreakSAD_P = {'Start':0, 'P1':0,'End':0}
 
-InsDDoS_A = {'4*TCP':{'Pre':['P2'],'Pos':['End']},'3*TCP':{'Pre':['Start'],'Pos':['P1']},
-             '1*RSH':{'Pre':['P1'],'Pos':['P2']},'2*RSH':{'Pre':['P1'],'Pos':['P2']},'3*RSH':{'Pre':['P1'],'Pos':['P2']},
-             '4*RSH':{'Pre':['P1'],'Pos':['P2']},'5*RSH':{'Pre':['P1'],'Pos':['P2']},'6*RSH':{'Pre':['P1'],'Pos':['P2']},
-             '1*SA':{'Pre':['P2'],'Pos':['P1']},'2*SA':{'Pre':['End'],'Pos':['Start']}}
-InsDDoS_P = {'Start':0, 'P1':0, 'P2':0, 'End':0}
+InsDDoS_A = {'1*RSH':{'Pre':['Start'],'Pos':['End']},'2*RSH':{'Pre':['Start'],'Pos':['End']},
+             '3*RSH':{'Pre':['Start'],'Pos':['End']},'4*RSH':{'Pre':['Start'],'Pos':['End']},'5*RSH':{'Pre':['Start'],'Pos':['End']},
+             '1*SA':{'Pre':['End'],'Pos':['Start']}}
+InsDDoS_P = {'Start':0, 'End':0}
 
-LauDDoS_A = {'3*TCP':{'Pre':['Start'],'Pos':['P1','P3']},
-             '1*TCP':{'Pre':['P1'],'Pos':['P2']},'1*TELNET':{'Pre':['P3'],'Pos':['P4']},'4*TCP':{'Pre':['P2','P4'],'Pos':['End']},
-             '1*SA':{'Pre':['P2'],'Pos':['P1']},'2*SA':{'Pre':['P4'],'Pos':['P3']}}
-LauDDoS_P = {'Start':0, 'P1':0, 'P2':0, 'P3':0, 'P4':0, 'End':0}
+#LauDDoS_A = {'3*TCP':{'Pre':['Start'],'Pos':['P1','P3']},
+#             '1*TCP':{'Pre':['P1'],'Pos':['P2']},'1*TELNET':{'Pre':['P3'],'Pos':['P4']},'4*TCP':{'Pre':['P2','P4'],'Pos':['End']},
+#             '1*SA':{'Pre':['P2'],'Pos':['P1']},'2*SA':{'Pre':['P4'],'Pos':['P3']}}
+#LauDDoS_P = {'Start':0, 'P1':0, 'P2':0, 'P3':0, 'P4':0, 'End':0}
+
+LauDDoS_A = {'1*TELNET':{'Pre':['Start'],'Pos':['End']},'2*TELNET':{'Pre':['Start'],'Pos':['End']},'3*TELNET':{'Pre':['Start'],'Pos':['End']},
+               '1*SA':{'Pre':['End'],'Pos':['Start']}}
+LauDDoS_P = {'Start':0,'End': 0}
 
 DNSServer_A = {'2*DNS':{'Pre':['Start'],'Pos':['End']}, '1*SA':{'Pre':['End'], 'Pos':['Start']}}
 DNSServer_P = {'Start':0, 'End': 0}
@@ -35,11 +38,13 @@ DNSServer_P = {'Start':0, 'End': 0}
 FTPUpload_A = {'1*TCP':{'Pre':['Start'],'Pos':['P1']},'2*FTP-DATA':{'Pre':['P1'],'Pos':['End']},'1*SA':{'Pre':['End'], 'Pos':['Start']}}
 FTPUpload_P = {'Start':0, 'P1':0, 'End':0}
 
+
+
 Attack0_A = [IPsweep_A, DAESAD_A, BreakSAD_A, InsDDoS_A, LauDDoS_A]
 Attack0_P = [IPsweep_P.copy(), DAESAD_P.copy(), BreakSAD_P.copy(), InsDDoS_P.copy(), LauDDoS_P.copy()]
 
-Attack1_A = [DNSServer_A, BreakSAD_A, FTPUpload_A, LauDDoS_A, BreakSAD_A, FTPUpload_A, LauDDoS_A]
-Attack1_P = [DNSServer_P.copy(), BreakSAD_P.copy(), FTPUpload_P.copy(), LauDDoS_P.copy(), BreakSAD_P.copy(), FTPUpload_P.copy(), LauDDoS_P.copy()]
+Attack1_A = [DNSServer_A, BreakSAD_A, FTPUpload_A, LauDDoS_A, FTPUpload_A, LauDDoS_A]
+Attack1_P = [DNSServer_P.copy(), BreakSAD_P.copy(), FTPUpload_P.copy(), LauDDoS_P.copy(), FTPUpload_P.copy(), LauDDoS_P.copy()]
 
 AttackList = [[Attack0_A, Attack0_P], [Attack1_A,Attack1_P]]
 
@@ -90,7 +95,7 @@ def isProPattern(attackL,stepL,Protocol,group):
 #Out: /
 #Function: group the protocol into protocol list for each group, if the interval is bigger than threshold, let protocol list flow and let step transits.
 def processFlow (proL,lastGroupT,groupT,groupProtocol,attackL,stepL,fourTokenL,group):
-    thresholdT = 5                                                  #minimum time threshold to split two step
+    thresholdT = 20                                                  #minimum time threshold to split two step
     stepTran = False                                                #whether step transition has been performed for any attack
     #if isProPattern(attackL,stepL,Protocol,group):                  #protocol belong to at least one of the transitting attack pattern
     if validTimeGap(lastGroupT, groupT, thresholdT) and isProPattern(attackL,stepL,groupProtocol,group):
@@ -100,16 +105,17 @@ def processFlow (proL,lastGroupT,groupT,groupProtocol,attackL,stepL,fourTokenL,g
         for (i,attack) in enumerate(attackL):
             fourTokenL[group][i] = [0,0,0,0]
             fitness = protoListFlow(proL[group],fourTokenL[group][i],attack,stepL[group][i],group,i)
-            if group == 24 and i == 1:
-                print(proL[group])
-                print(fourTokenL[group][i])
-                print('group = ', group, 'step=', stepL[group][i] + 1,'attackNum=',i, 'fitness=', fitness, 'group time=', lastGroupT)
+            #if group == 24 and i == 1:
+            #    print(proL[group])
+            #    print(fourTokenL[group][i])
+            #    print('group = ', group, 'step=', stepL[group][i] + 1,'attackNum=',i, 'fitness=', fitness, 'group time=', lastGroupT)
             if stepTransit (fitness) and stepL[group][i] < len(attack[1])-1:
                 #if group == 24 and i == 1:
-                #    print(proL[group])
-                #    print(fourTokenL[group][i])
-                #    print('group = ', group, 'step=', stepL[group][i] + 1, 'attackNum=', i, 'fitness=', fitness,
-                #          'group time=', lastGroupT)
+                print(proL[group])
+                print(fourTokenL[group][i])
+                print('group = ', group, 'step=', stepL[group][i] + 1, 'attackNum=', i, 'fitness=', fitness,
+                          'group time=', lastGroupT)
+                print('--------------')
                 proL[group]= [groupProtocol]
                 stepL[group][i] = stepL[group][i] + 1
                 stepTran = True
@@ -128,7 +134,7 @@ def protoListFlow (proL, fourToken, attack, step,group,attackNum):
     for protocol in proL:
         tokenFlow(protocol, net_A, net_P, fourToken, step)
     fitness = calFitness(fourToken)
-    if group == 24 and attackNum == 1:
+    if fitness>0.8:
         print(net_P,fourToken)
     return fitness
 
@@ -227,7 +233,7 @@ def dataprocessing():
                     l = {'No.id': l[0], 'Time': l[1], 'SrcIp': l[2], 'DesIp': l[3], 'Protocol': l[4], 'SrcPort':'-','DesPort':'-', 'Len': l[5],
                          'Info': l[6]}
 
-
+                #print(l['Time'])
                 #add the source Ips to the frequency dictionary, build relationship between the previous dest and the current src
                 if (SrcIpFreq[l['SrcIp']] == 0):                    #SrcIp not as SrcIp before
                     if (DesIpFreq[l['SrcIp']] == 0):                #and SrcIp not as DesIp before
@@ -277,11 +283,11 @@ def dataprocessing():
 
         groupNum = len(result) - 1
         name = ['SrcIp > DesIp', 'Protocol', 'SrcPort', 'DesPort','Time']
-        for i in range (0, groupNum+1):
-            IpPairNum = len(result[i])
-            if IpPairNum > 1:
-                data = pd.DataFrame(columns = name, data = result[i])
-                data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
+        #for i in range (0, groupNum+1):
+        #    IpPairNum = len(result[i])
+        #    if IpPairNum > 1:
+        #        data = pd.DataFrame(columns = name, data = result[i])
+        #        data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
 
         #sixTlistdata = pd.DataFrame(columns=['p','c','m','r','n','a'], data=sixTlist)
         #sixTlistdata.to_csv('/home/jin/Documents/Generated Data/data_group tokenNum')
