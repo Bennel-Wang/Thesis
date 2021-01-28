@@ -283,11 +283,11 @@ def dataprocessing():
 
         groupNum = len(result) - 1
         name = ['SrcIp > DesIp', 'Protocol', 'SrcPort', 'DesPort','Time']
-        #for i in range (0, groupNum+1):
-        #    IpPairNum = len(result[i])
-        #    if IpPairNum > 1:
-        #        data = pd.DataFrame(columns = name, data = result[i])
-        #        data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
+        for i in range (0, groupNum+1):
+            IpPairNum = len(result[i])
+            if IpPairNum > 1:
+                data = pd.DataFrame(columns = name, data = result[i])
+                data.to_csv('/home/jin/Documents/Generated Data/data_group'+ str(i))
 
         #sixTlistdata = pd.DataFrame(columns=['p','c','m','r','n','a'], data=sixTlist)
         #sixTlistdata.to_csv('/home/jin/Documents/Generated Data/data_group tokenNum')
