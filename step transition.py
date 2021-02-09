@@ -60,6 +60,7 @@ def calFitness(fourToken):
     fitness =  1/2 * (1 - ((m+x)/(c+x))) + 1/2 * (1 - ((r+x)/(p+x)))    #for numerator and denominator all 0, fitness = 0
     return fitness
 
+
 #In: fitness
 #Out: transit or not
 #Function: whether to transit to next step
