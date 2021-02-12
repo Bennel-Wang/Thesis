@@ -3,6 +3,8 @@ import csv
 import re
 import pandas as pd
 
+
+#Attack pattern definition
 IPsweep_A = {'2*ICMP':{'Pre':['Start'],'Pos':['End']}, '1*SA':{'Pre':['End'], 'Pos':['Start']}}
 IPsweep_P = {'Start':0,'End': 0}
 
@@ -59,6 +61,7 @@ def calFitness(fourToken):
     r = fourToken[3]     #remained
     fitness =  1/2 * (1 - ((m+x)/(c+x))) + 1/2 * (1 - ((r+x)/(p+x)))    #for numerator and denominator all 0, fitness = 0
     return fitness
+
 
 
 #In: fitness
