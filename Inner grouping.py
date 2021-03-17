@@ -301,6 +301,9 @@ def dataprocessing():
         DesIpFreq = collections.defaultdict(int)
         lastProtocol = collections.defaultdict(str)
         lastTime  = collections.defaultdict(str)
+        lastInfo  = collections.defaultdict(str)
+        lastIpSrc  = collections.defaultdict(str)
+        lastIpDes  = collections.defaultdict(str)
         groupT = []
         lastGroupT = []
         for (i,l) in enumerate(reader):
@@ -322,36 +325,63 @@ def dataprocessing():
                 #add the source Ips to the frequency dictionary, build relationship between the previous dest and the current src
                 if (SrcIpFreq[l['SrcIp']] == 0):                    #SrcIp not as SrcIp before
                     if (DesIpFreq[l['SrcIp']] == 0):                #and SrcIp not as DesIp before
-                        group = group + 1                           #new a group and add the SrcIP and DesIp to the group
-                        IpGroup[l['SrcIp']] = group
-                        IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
-                        result.append([])
-                        protocolList.append([])
-                        stepList.append([0]*len(AttackList))
-                        fourTokenList.append([[0,0,0,0]]*len(AttackList))
-                        groupT.append('0.0')
-                        lastGroupT.append('0.0')
-                        lastTime[IpGroup[l['SrcIp']]] = '0.0'
-                        lastProtocol[IpGroup[l['SrcIp']]] ='1*Begin'
-                        lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList, stepList, fourTokenList, l['Time'], lastProtocol[IpGroup[l['SrcIp']]], lastTime,
-                                           groupT, lastGroupT,IpGroup[l['SrcIp']], lastInfo[IpGroup[l['SrcIp']]], l['Info'],
-                                            lastIpSrc[IpGroup[l['SrcIp']]], l['SrcIp'], lastIpDes[IpGroup[l['SrcIp']]], l['DesIp'])
-                        #print(stepList[IpGroup[l['SrcIp']]])
-                        lastTime[IpGroup[l['SrcIp']]] = l['Time']
-                        #print('Initialize SrcIp ', l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'],  l['Info'], 'Attack tree group = ', IpGroup[l['SrcIp']])
-                        result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
+                        if (DesIpFreq[l['DesIp']] == 0):            #and DesIp not as DesIp before
+                            group = group + 1                           #new a group and add the SrcIP and DesIp to the group
+                            IpGroup[l['SrcIp']] = group
+                            IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
+                            result.append([])
+                            protocolList.append([])
+                            stepList.append([0]*len(AttackList))
+                            fourTokenList.append([[0,0,0,0]]*len(AttackList))
+                            groupT.append('0.0')
+                            lastGroupT.append('0.0')
+                            lastTime[IpGroup[l['SrcIp']]] = '0.0'
+                            lastInfo[IpGroup[l['SrcIp']]] = ''
+                            lastIpSrc[IpGroup[l['SrcIp']]] = ''
+                            lastIpDes[IpGroup[l['SrcIp']]] = ''
+                            lastProtocol[IpGroup[l['SrcIp']]] ='1*Begin'
+                            lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList, stepList, fourTokenList, l['Time'], lastProtocol[IpGroup[l['SrcIp']]], lastTime,
+                                               groupT, lastGroupT,IpGroup[l['SrcIp']], lastInfo[IpGroup[l['SrcIp']]], l['Info'],
+                                                lastIpSrc[IpGroup[l['SrcIp']]], l['SrcIp'], lastIpDes[IpGroup[l['SrcIp']]], l['DesIp'])
+                            #print(stepList[IpGroup[l['SrcIp']]])
+                            lastTime[IpGroup[l['SrcIp']]] = l['Time']
+                            lastInfo[IpGroup[l['SrcIp']]] = l['Info']
+                            lastIpSrc[IpGroup[l['SrcIp']]] = l['SrcIp']
+                            lastIpDes[IpGroup[l['SrcIp']]] = l['DesIp']
+                            print('Initialize SrcIp ', l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'],  l['Info'], 'Attack tree group = ', IpGroup[l['SrcIp']])
+                            result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
+                        else:           #DesIp as DesIp before
+                            IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]  # link the path
+                            print(l['SrcIp'], ' > ', l['DesIp'],  ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
+                            result[IpGroup[l['SrcIp']]].append(
+                                [l['SrcIp'] + ' > ' + l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
+                            lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'],
+                                                                                   AttackList, stepList, fourTokenList, l['Time'],
+                                                                                   lastProtocol[IpGroup[l['SrcIp']]], lastTime,
+                                                                                   groupT, lastGroupT,IpGroup[l['SrcIp']],
+                                                                                   lastInfo[IpGroup[l['SrcIp']]],l['Info'],
+                                                                                   lastIpSrc[IpGroup[l['SrcIp']]],l['SrcIp'],
+                                                                                   lastIpDes[IpGroup[l['SrcIp']]],l['DesIp'])
+                            # print(stepList[IpGroup[l['SrcIp']]])
+                            lastTime[IpGroup[l['SrcIp']]] = l['Time']
+                            lastInfo[IpGroup[l['SrcIp']]] = l['Info']
+                            lastIpSrc[IpGroup[l['SrcIp']]] = l['SrcIp']
+                            lastIpDes[IpGroup[l['SrcIp']]] = l['DesIp']
                     else:                                           #but Src as Des before
                         IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]   #link the path
-                        #print(l['SrcIp'], ' > ', l['DesIp'],  ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
+                        print(l['SrcIp'], ' > ', l['DesIp'],  ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
                         result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
                         lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList, stepList, fourTokenList, l['Time'], lastProtocol[IpGroup[l['SrcIp']]], lastTime,
                                            groupT, lastGroupT,IpGroup[l['SrcIp']], lastInfo[IpGroup[l['SrcIp']]], l['Info'],
                                             lastIpSrc[IpGroup[l['SrcIp']]], l['SrcIp'], lastIpDes[IpGroup[l['SrcIp']]], l['DesIp'])
                         #print(stepList[IpGroup[l['SrcIp']]])
                         lastTime[IpGroup[l['SrcIp']]] = l['Time']
+                        lastInfo[IpGroup[l['SrcIp']]] = l['Info']
+                        lastIpSrc[IpGroup[l['SrcIp']]] = l['SrcIp']
+                        lastIpDes[IpGroup[l['SrcIp']]] = l['DesIp']
                 else:                                               #SrcIp as Src before
                     IpGroup[l['DesIp']] = IpGroup[l['SrcIp']]
-                    #print(l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
+                    print(l['SrcIp'], ' > ', l['DesIp'], ' time = ', l['Time'], l['Info'], ' group = ', IpGroup[l['SrcIp']])
                     result[IpGroup[l['SrcIp']]].append([l['SrcIp'] +' > '+ l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time']])
                     lastProtocol[IpGroup[l['SrcIp']]] = protocolProcessing(protocolList, l['Protocol'], AttackList,
                                                                            stepList, fourTokenList, l['Time'],
@@ -359,7 +389,10 @@ def dataprocessing():
                                                                            groupT, lastGroupT, IpGroup[l['SrcIp']], lastInfo[IpGroup[l['SrcIp']]], l['Info'],
                                                                            lastIpSrc[IpGroup[l['SrcIp']]], l['SrcIp'], lastIpDes[IpGroup[l['SrcIp']]], l['DesIp'])
                     #print(stepList[IpGroup[l['SrcIp']]])
-                    lastTime[IpGroup[l['SrcIp']]]  = l['Time']
+                    lastTime[IpGroup[l['SrcIp']]] = l['Time']
+                    lastInfo[IpGroup[l['SrcIp']]] = l['Info']
+                    lastIpSrc[IpGroup[l['SrcIp']]] = l['SrcIp']
+                    lastIpDes[IpGroup[l['SrcIp']]] = l['DesIp']
 
                 #add the destioation Ips to the frequency dictionary,  the previous des and the current des
                 SrcIpFreq[l['SrcIp']] = SrcIpFreq[l['SrcIp']] + 1
