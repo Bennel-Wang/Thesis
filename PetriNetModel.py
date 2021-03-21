@@ -1,0 +1,36 @@
+DNSServer_P = {'1*Start': [], '1*End': []}
+DNSServer_T = ['2*DNS', '1*SA']
+DNSServer_A1 = [['1*Start', '2*DNS', float('inf')], ['1*End', '1*SA', float('inf')]]
+DNSServer_A2 = [['2*DNS', '1*End', 0], ['1*SA', '1*Start', 0]]
+DNSServer_L = 2
+
+BreakSAD_P = {'1*Start': [], '1*P1': [], '1*End': []}
+BreakSAD_T = ['2*Portmap', '1*SADMIND']
+BreakSAD_A1 = [['1*Start', '2*Portmap', float('inf')], ['1*P1', '1*SADMIND', float('inf')], ['1*End', '1*SA', float('inf')]]
+BreakSAD_A2 = [['2*Portmap', '1*P1', 0], ['1*SADMIND', '1*End', 0], ['1*SA', '1*Start', 0]]
+BreakSAD_L = 4
+
+FTPUpload_P = {'1*Start': [], '1*P1': [], '1*End': []}
+FTPUpload_T = ['1*FTP-DATA', '1*TCP', '1*SA']
+FTPUpload_A1 = [['1*Start', '1*FTP-DATA', float('inf')], ['1*P1', '1*TCP', float('inf')], ['1*P1', '1*SA', float('inf')],['1*End', '2*SA', float('inf')]]
+FTPUpload_A2 = [['1*FTP-DATA', '1*P1', 0], ['1*TCP', '1*End', 0], ['1*SA', '1*Start', 0], ['2*SA', '1*Start', 0]]
+FTPUpload_L = 25
+
+LauDDoS_P = {'1*Start': [], '1*End': []}
+LauDDoS_T = ['1*TELNET', '1*SA']
+LauDDoS_A1 = [['1*Start', '1*TELNET', float('inf')], ['1*End', '1*SA', float('inf')]]
+LauDDoS_A2 = [['1*TELNET', '1*End', 0], ['1*SA', '1*Start', 0]]
+LauDDoS_L = 50
+
+transitionSet = set(DNSServer_T + BreakSAD_T + FTPUpload_T + LauDDoS_T + FTPUpload_T + LauDDoS_T)
+
+Attack1_T = [DNSServer_T, BreakSAD_T, FTPUpload_T, LauDDoS_T, FTPUpload_T, LauDDoS_T]
+Attack1_P = [DNSServer_P.copy(), BreakSAD_P.copy(), FTPUpload_P.copy(), LauDDoS_P.copy(), FTPUpload_P.copy(),
+             LauDDoS_P.copy()]
+Attack1_A1 = [DNSServer_A1, BreakSAD_A1, FTPUpload_A1, LauDDoS_A1, FTPUpload_A1, LauDDoS_A1]
+Attack1_A2 = [DNSServer_A2, BreakSAD_A2, FTPUpload_A2, LauDDoS_A2, FTPUpload_A2, LauDDoS_A2]
+Attack1_L = [DNSServer_L, BreakSAD_L, FTPUpload_L, LauDDoS_L, FTPUpload_L, LauDDoS_L]
+
+Attack1 = [Attack1_T, Attack1_P, Attack1_A1, Attack1_A2, Attack1_L]
+AttackList = [Attack1]
+
