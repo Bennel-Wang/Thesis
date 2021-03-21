@@ -120,21 +120,22 @@ def tokenReplay():
                             continue
                         else:
                             petriNet_T = attack[0][stepNum]  # copy that for each file
-                            petriNet_P = attack[1][stepNum].copy()
+                            petriNet_P = attack[1][stepNum]
                             petriNet_A1 = attack[2][stepNum]
                             petriNet_A2 = attack[3][stepNum]
                             petriNet_L = attack[4][stepNum]
                             #print(petriNet_T)
                             l = {'Protocol': l[1],'Time': l[2]}
-                            if l['Protocol'] in petriNet_T:
+                            if l['Protocol'] in petriNet_T and (len(inputSeq) < 5*petriNet_L):
                                 inputSeq.append([l['Protocol'], l['Time']])
                                 fitness = protoListFlow(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, petriNet_L, fourToken, inputSeq)
+
                                 if fitness > 0.5:
                                     chainNum = file.split('_')[3].split('.')[0]
                                     attackSeq.append([chainNum, fitness, i, stepNum, inputSeq])
                                     print([chainNum, fitness, i, stepNum, inputSeq])
                                     inputSeq = []
-                                    if stepNum < 5: #len(attack[0]):
+                                    if stepNum < len(attack[0]):
                                         stepNum = stepNum + 1
                                     else:
                                         print('Attack Finished')
