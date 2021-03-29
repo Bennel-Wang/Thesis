@@ -2,8 +2,9 @@ from HelperFunction import validTimeGap
 import csv
 import pandas as pd
 import os
+import re
 
-#Inner grouping rule
+#Inner grouping rule based on protocol information
 
 #Standard query 0xc9cc PTR 20.115.16.172.in-addr.arpa
 #Standard query response 0xc9cc PTR 20.115.16.172.in-addr.arpa PTR mill.eyrie.af.mil NS mill.eyrie.af.mil A 172.16.115.20
@@ -93,26 +94,37 @@ def groupProtocol(lastGroupPro, curPro, lastGroupTi, curTi, lastGroupInfo, curIn
 #Function: Grouping protocol of different protocol chains according to their information
 def grouping():
     name = ['Protocol', 'Time']
-    for root, dirs, files in os.walk('/home/jin/Documents/Generated Data/Ip Chain'):
+    for root, dirs, files in os.walk('/media/sf_Sharefolder/dataset/DARPA2000-LLS_DDOS_2.0.2/inside2.csv'):
         for file in files:
             res = []
             with open('/home/jin/Documents/Generated Data/Ip Chain/' + str(file), 'r') as f:
-                lastRecord = ['SrcIp', 'DesIp', '1*Protocol', 'Time', 'Info']
+                startTCP = 0
+                startTCPInfo = []
                 reader = csv.reader(f)
+                result = []
                 for (i, l) in enumerate(reader):
                     # remove the head
                     if (i == 0):
                         continue
                     else:
-                        l = {'No.id': l[0],  'SrcIp': l[1], 'DesIp': l[2], 'Protocol': l[3],
-                                 'SrcPort': l[4], 'DesPort': l[5],  'Time': l[6], 'Info': l[7]}
-                        #print(l[7])
-                        groupedPro = groupProtocol(lastRecord[2], l['Protocol'], lastRecord[3], l['Time'], lastRecord[4], l['Info'], lastRecord[0], l['SrcIp'], lastRecord[1], l['DesIp'])
-                        if ((int(groupedPro.split('*')[0]) == (int(lastRecord[2].split('*')[0])+1)) and (groupedPro.split('*')[1] == lastRecord[2].split('*')[1])):
-                            res[-1][0] = groupedPro
-                        else:
-                            res.append([groupedPro, l['Time']])
-                        lastRecord = [l['SrcIp'], l['DesIp'], groupedPro, l['Time'],l['Info']]
+                        l = {'No.id': l[0],  'Time': l[1],'SrcIp': l[2], 'DesIp': l[3],
+                                 'SrcPort': l[4], 'DesPort': l[5], 'Protocol': l[6], 'Info': l[8]}
+
+                        if l['Protocol'] == 'TCP' and re.search('SYN', l['Info'], flags=0):
+                            startTCP = startTCP + 1
+                            startTCPInfo.append([l['Time'],l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'], l['Protocol']])
+                        elif (startTCP >0) and l['SrcIp'] = startTCPInfo
+                        and (l['Protocol'] == 'TELNET' or l['Protocol'] == 'RSH' or l['Protocol'] == 'FTP' or l['Protocol'] == 'FTP-DATA'):
+                            l['Info'] = 'TCP Begin'
+                            result.append(l)
+                            startTCP = startTCP - 1
+                        elif
+                        #groupedPro = groupProtocol(lastRecord[2], l['Protocol'], lastRecord[3], l['Time'], lastRecord[4], l['Info'], lastRecord[0], l['SrcIp'], lastRecord[1], l['DesIp'])
+                        #if ((int(groupedPro.split('*')[0]) == (int(lastRecord[2].split('*')[0])+1)) and (groupedPro.split('*')[1] == lastRecord[2].split('*')[1])):
+                        #    res[-1][0] = groupedPro
+                        #else:
+                        #    res.append([groupedPro, l['Time']])
+                        #lastRecord = [l['SrcIp'], l['DesIp'], groupedPro, l['Time'],l['Info']]
                 data = pd.DataFrame(columns=name, data=res)
                 data.to_csv('/home/jin/Documents/Generated Data/Grouped Chain/grouped_' + str(file))
         print('done')
