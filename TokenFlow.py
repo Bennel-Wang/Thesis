@@ -2,7 +2,6 @@ from HelperFunction import validTimeGap
 import os
 import csv
 import pandas as pd
-from PetriNetModel import transitionSet
 from PetriNetModel import AttackList
 
 #In: 4 tokens list, log number
@@ -75,7 +74,7 @@ def fireProtocol(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, pr
     protocolPostset = postsetPlace(petriNet_A2, protocol)
     for [preplace, cddl] in protocolPreset:
         if len(petriNet_P[preplace]) == 0:
-            for pro in petriNet_T:
+            for pro in petriNet_T:                          #silent activity execution first
                 if pro.split('*')[1] == 'SA':
                     for [pla,_ ] in postsetPlace(petriNet_A2, pro):
                         if pla == preplace:
@@ -94,16 +93,17 @@ def fireProtocol(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, pr
 def protoListFlow(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, petriNet_L, fourToken, inputSeq):
     for p in petriNet_P:
         if p.split('*')[1] == 'Start':
-            #print((petriNet_P, p, '0', fourToken, '0', p.split('*')[0]))
-            produceToken(petriNet_P, p, '0', fourToken, '0', p.split('*')[0])
+            produceToken(petriNet_P, p, '0', fourToken, '0', p.split('*')[0])       #Start place
             break
     for [protocol, time] in inputSeq:
         fireProtocol(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, protocol, time)
-    consumeToken(petriNet_P, '1*End', time, fourToken, float("inf"), '1')
+    consumeToken(petriNet_P, '1*End', time, fourToken, float("inf"), '1')           #End place
     fitness = calFitness(fourToken, petriNet_L)
     return fitness
 
-
+#In:\grouped chain file data
+#Out: Attack chain
+#Function: Doing token replay, output attack chain
 def tokenReplay():
     for root, dirs, files in os.walk('/home/jin/Documents/Generated Data/Grouped Chain'):
         attackSeq = []
@@ -127,10 +127,9 @@ def tokenReplay():
                             #print(petriNet_T)
                             l = {'Protocol': l[1],'Time': l[2]}
                             if l['Protocol'] in petriNet_T and (len(inputSeq) < 5*petriNet_L):
-                                inputSeq.append([l['Protocol'], l['Time']])
+                                inputSeq.append([l['Protocol'], l['Time']])         #input incresement
                                 fitness = protoListFlow(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, petriNet_L, fourToken, inputSeq)
-
-                                if fitness > 0.8:
+                                if fitness > 0.8:                           #step transition
                                     if stepNum < len(attack[0])-1:
                                         chainNum = file.split('_')[3].split('.')[0]
                                         attackSeq.append([chainNum, fitness, i, stepNum, inputSeq])

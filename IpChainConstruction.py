@@ -8,7 +8,7 @@ import pandas as pd
 #Function: Construct Ip Chain file from raw data
 def IpChainConstuct():
     #initialization
-    with open('/home/jin/Documents/LLS_DDOS 2.0 inside.csv', 'r') as f: #test for 3000 cases
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside2.csv', 'r') as f: #test for 3000 cases
         reader = csv.reader(f)
         result = []                                                     #the result of output file
         chain = -1                                                                  #current Chain number
@@ -21,14 +21,14 @@ def IpChainConstuct():
                 continue
             else:
                 # get the data, re-organize them
-                pattern = re.compile(r'(.*)  >  (.*)')
-                matchObj = pattern.match(l[6])
-                if (matchObj):
-                    l = {'No.id': l[0], 'Time': l[1], 'SrcIp': l[2], 'DesIp': l[3], 'Protocol': l[4], 'SrcPort':matchObj.group(1),'DesPort':matchObj.group(2).split(' ')[0],'Len': l[5],
-                         'Info': l[6]}
-                else:
-                    l = {'No.id': l[0], 'Time': l[1], 'SrcIp': l[2], 'DesIp': l[3], 'Protocol': l[4], 'SrcPort':'-','DesPort':'-', 'Len': l[5],
-                         'Info': l[6]}
+                #pattern = re.compile(r'(.*)  >  (.*)')
+                #matchObj = pattern.match(l[6])
+                #if (matchObj):
+                l = {'No.id': l[0], 'Time': l[1], 'SrcIp': l[2], 'DesIp': l[3], 'Protocol': l[6], 'SrcPort':l[4],'DesPort':l[5],'Len': l[7],
+                         'Info': l[8]}
+                #else:
+                #    l = {'No.id': l[0], 'Time': l[1], 'SrcIp': l[2], 'DesIp': l[3], 'Protocol': l[6], 'SrcPort':l[4],'DesPort':l[5], 'Len': l[7],
+                #         'Info': l[8]}
 
                 #add the source Ips to the frequency dictionary, build relationship between the previous dest and the current src
                 if (SrcIpFreq[l['SrcIp']] == 0):                    #SrcIp not as SrcIp before
@@ -38,22 +38,22 @@ def IpChainConstuct():
                         IpChain[l['DesIp']] = IpChain[l['SrcIp']]
                         result.append([])
                         print(l['SrcIp'], ' > ', l['DesIp'], ' chain = ', IpChain[l['SrcIp']])
-                        result[IpChain[l['SrcIp']]].append([l['SrcIp'],  l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Info']])
+                        result[IpChain[l['SrcIp']]].append([l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'],  l['Protocol'], l['Info']])
                     else:                                           #but Src as Des before
                         IpChain[l['DesIp']] = IpChain[l['SrcIp']]   #link the path
                         print(l['SrcIp'], ' > ', l['DesIp'], ' chain = ', IpChain[l['SrcIp']])
-                        result[IpChain[l['SrcIp']]].append([l['SrcIp'], l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Info']])
+                        result[IpChain[l['SrcIp']]].append([l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'],  l['Protocol'], l['Info']])
                 else:                                               #SrcIp as Src before
                     IpChain[l['DesIp']] = IpChain[l['SrcIp']]
                     print(l['SrcIp'], ' > ', l['DesIp'], ' chain = ', IpChain[l['SrcIp']])
-                    result[IpChain[l['SrcIp']]].append([l['SrcIp'], l['DesIp'],  l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'], l['Info']])
+                    result[IpChain[l['SrcIp']]].append([l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'],  l['Protocol'], l['Info']])
 
                 #add the destioation Ips to the frequency dictionary,  the previous des and the current des
                 SrcIpFreq[l['SrcIp']] = SrcIpFreq[l['SrcIp']] + 1
                 DesIpFreq[l['DesIp']] = DesIpFreq[l['DesIp']] + 1
 
         chainNum = len(result) - 1
-        name = ['SrcIp', 'DesIp', 'Protocol', 'SrcPort', 'DesPort','Time','Info']
+        name = ['Time', 'SrcIp', 'DesIp', 'SrcPort','DesPort','Protocol','Info']
         for i in range (0, chainNum+1):
             IpPairNum = len(result[i])
             if IpPairNum > 1:
