@@ -12,7 +12,7 @@ def IpChainConstuct():
         reader = csv.reader(f)
         result = []                                                     #the result of output file
         chain = -1                                                                  #current Chain number
-        IpChain = collections.defaultdict(int)
+        IpChain = collections.defaultdict(list)
         SrcIpFreq = collections.defaultdict(int)
         DesIpFreq = collections.defaultdict(int)
         for (i,l) in enumerate(reader):
@@ -34,19 +34,28 @@ def IpChainConstuct():
                 if (SrcIpFreq[l['SrcIp']] == 0):                    #SrcIp not as SrcIp before
                     if (DesIpFreq[l['SrcIp']] == 0):                #and SrcIp not as DesIp before
                         chain = chain + 1                           #new a group and add the SrcIP and DesIp to the group
-                        IpChain[l['SrcIp']] = chain
-                        IpChain[l['DesIp']] = IpChain[l['SrcIp']]
                         result.append([])
-                        print(l['SrcIp'], ' > ', l['DesIp'], ' chain = ', IpChain[l['SrcIp']])
-                        result[IpChain[l['SrcIp']]].append([l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'],  l['Protocol'], l['Info']])
+                        IpChain[l['SrcIp']] = [chain]
+                        IpChain[l['DesIp']] = [chain]
+                        result[chain].append([l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'], l['Protocol'],
+                                 l['Info']])
+                        print('new', l['SrcIp'], ' > ', l['DesIp'], ' chain = ', chain)
                     else:                                           #but Src as Des before
-                        IpChain[l['DesIp']] = IpChain[l['SrcIp']]   #link the path
-                        print(l['SrcIp'], ' > ', l['DesIp'], ' chain = ', IpChain[l['SrcIp']])
-                        result[IpChain[l['SrcIp']]].append([l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'],  l['Protocol'], l['Info']])
+                        for c in IpChain[l['SrcIp']]:
+                            if c not in IpChain[l['DesIp']]:
+                                IpChain[l['DesIp']].append(c)
+                                result[c].append(
+                                    [l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'], l['Protocol'],
+                                     l['Info']])
+                                print('link',l['SrcIp'], ' > ', l['DesIp'], ' chain = ', c)
                 else:                                               #SrcIp as Src before
-                    IpChain[l['DesIp']] = IpChain[l['SrcIp']]
-                    print(l['SrcIp'], ' > ', l['DesIp'], ' chain = ', IpChain[l['SrcIp']])
-                    result[IpChain[l['SrcIp']]].append([l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'],  l['Protocol'], l['Info']])
+                    for c in IpChain[l['SrcIp']]:
+                        if c not in IpChain[l['DesIp']]:
+                            IpChain[l['DesIp']].append(c)
+                            result[c].append(
+                                [l['Time'], l['SrcIp'], l['DesIp'], l['SrcPort'], l['DesPort'], l['Protocol'],
+                                 l['Info']])
+                            print('link', l['SrcIp'], ' > ', l['DesIp'], ' chain = ', c)
 
                 #add the destioation Ips to the frequency dictionary,  the previous des and the current des
                 SrcIpFreq[l['SrcIp']] = SrcIpFreq[l['SrcIp']] + 1
