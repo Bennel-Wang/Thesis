@@ -2,7 +2,7 @@ from IpChainConstruction import IpChainConstuct
 from GroupingRule import grouping
 from TokenFlow import tokenReplay
 def main():
-    #IpChainConstuct()
+    IpChainConstuct()
     grouping()
     #tokenReplay()
     #print('Detection done')

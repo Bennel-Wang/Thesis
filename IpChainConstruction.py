@@ -42,21 +42,23 @@ def IpChainConstuct():
                              l['Info']])
                         print('new', l['SrcIp'], ' > ', l['DesIp'], ' chain = ', chain)
                     else:                                           #but Src as Des before
-                        for c in IpChain[l['SrcIp']]:
-                            if c not in IpChain[l['DesIp']]:
-                                IpChain[l['DesIp']].append(c)
-                            result[c].append(
-                                    [l['SrcIp'], l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'],
-                                     l['Info']])
-                            print('link',l['SrcIp'], ' > ', l['DesIp'], ' chain = ', c)
+                        for (i, c) in enumerate(IpChain[l['SrcIp']]):
+                            if i < 4:       #maximum depth of stack, prevent too many data
+                                if c not in IpChain[l['DesIp']]:
+                                    IpChain[l['DesIp']].insert(0, c)        #use insert to design location. Then get the last insert 3 chains
+                                result[c].append(
+                                        [l['SrcIp'], l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'],
+                                         l['Info']])
+                                print('link',l['SrcIp'], ' > ', l['DesIp'], ' chain = ', c)
                 else:                                               #SrcIp as Src before
-                    for c in IpChain[l['SrcIp']]:
-                        if c not in IpChain[l['DesIp']]:
-                            IpChain[l['DesIp']].append(c)
-                        result[c].append(
-                                [ l['SrcIp'], l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'],
-                                 l['Info']])
-                        print('link', l['SrcIp'], ' > ', l['DesIp'], ' chain = ', c)
+                    for (i, c) in enumerate(IpChain[l['SrcIp']]):
+                        if i < 4:
+                            if c not in IpChain[l['DesIp']]:
+                                IpChain[l['DesIp']].insert(0, c)
+                            result[c].append(
+                                    [ l['SrcIp'], l['DesIp'], l['Protocol'], l['SrcPort'], l['DesPort'], l['Time'],
+                                     l['Info']])
+                            print('split', l['SrcIp'], ' > ', l['DesIp'], ' chain = ', c)
 
                 #add the destioation Ips to the frequency dictionary,  the previous des and the current des
                 SrcIpFreq[l['SrcIp']] = SrcIpFreq[l['SrcIp']] + 1
