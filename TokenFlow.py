@@ -1,153 +1,234 @@
-from HelperFunction import validTimeGap
+import collections
 import os
 import csv
 import pandas as pd
-from PetriNetModel import AttackList
+import numpy as np
+
+#first initialize a maximum number, then if any new, update the number and re-normalize
+indexMap = {'Start':0, 'Sadmind_Ping':1, 'TelnetTerminaltype': 2, 'Email_Almail_Overflow':3, 'Email_Ehlo':4, 'FTP_User':5, 'FTP_Pass':6,
+            'FTP_Syst':7, 'HTTP_Java':8, 'HTTP_Shells':9, 'Admind':10, 'Sadmind_Amslverify_Overflow':11, 'Rsh':12, 'Mstream_Zombie':13,
+            'HTTP_Cisco_Catalyst_Exec':14, 'SSH_Detected':15, 'Email_Debug':16, 'TelnetXdisplay':17, 'TelnetEnvAll':18, 'Stream_DoS':19,
+            'FTP_Put':20, 'Email_Turn':21, 'HTTP_ActiveX':22,'Port_Scan':23, 'TCP_Urgent_Data':24,'RIPExpire':25,'RIPAdd':26}
+alertList= ['Start', 'Sadmind_Ping', 'TelnetTerminaltype', 'Email_Almail_Overflow', 'Email_Ehlo', 'FTP_User', 'FTP_Pass',
+            'FTP_Syst', 'HTTP_Java', 'HTTP_Shells', 'Admind', 'Sadmind_Amslverify_Overflow', 'Rsh', 'Mstream_Zombie',
+            'HTTP_Cisco_Catalyst_Exec', 'SSH_Detected', 'Email_Debug', 'TelnetXdisplay', 'TelnetEnvAll', 'Stream_DoS',
+            'FTP_Put', 'Email_Turn', 'HTTP_ActiveX','Port_Scan', 'TCP_Urgent_Data','RIPExpire','RIPAdd']
+
+
+def updateProbabiity(similarity, lastTransition, currentTransition, ProbabilityMatrix, indexMap):
+    coefficient = 0.5
+    lastProbability = ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]]
+    #print(coefficient, ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]],indexMap[currentTransition],similarity)
+    ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]] = coefficient * ProbabilityMatrix[
+        indexMap[lastTransition], indexMap[currentTransition]] + (1 - coefficient) * similarity
+    alpha = ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]]/lastProbability
+    #print(alpha,lastProbability)
+    beta = (1-alpha)/(1-lastProbability) + alpha
+    ProbabilityMatrix[:, indexMap[currentTransition]] = ProbabilityMatrix[:, indexMap[currentTransition]] * beta
+    ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]] = ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]]/beta
+
+
+
+def initializeNet(net_P, indexMap):
+    for alert in indexMap:
+        net_P[alert] = 0#(len(indexMap)-1)/2
+
+def initializeProbabiity(ProbabilityMatrix, indexMap):
+    for i in range(len(indexMap)):
+        for j in range(len(indexMap)):
+            ProbabilityMatrix[i, j] = 1/len(indexMap)
+            #print(ProbabilityMatrix[i, j])
 
 #In: 4 tokens list, log number
 #Out: improved fitness value
 #Function: calculate fitness
-def calFitness(fourToken, logNum):
-    const = 0.05 * logNum
+def calFitness(fourToken, factor = (len(indexMap)-1)/2):
+    const = 0.00001
     p = fourToken[0]     #produced
     c = fourToken[1]     #consumed
     m = fourToken[2]     #missed
     r = fourToken[3]     #remained
-    fitness =  1/2 * (1 - ((m+const)/(c+const))) + 1/2 * (1 - ((r+const)/(p+const)))    #for numerator and denominator all 0, fitness = 0
+    fitness = 1 / 2 * (1 - m / (c + const)) + 1 / 2 * (1 - r / (p + const))
+    #if r - factor > 0:
+    #    fitness =  1/2 * (1 - m/(c+const)) + 1/2 * (1 - (r-factor)/(p+const))    #for numerator and denominator all 0, fitness = 0
+    #else:
+    #    fitness =  1/2 * (1 - m/(c+const))
     return fitness
 
 
 #In:petri net, node, current time,  four token list, token consume deadline, place weighting factor
 #Out:/revised net
 #Function:consume/miss w token flow
-def consumeToken(net_P, node, time, fourToken, cddl = float("inf"), w = '1'):
+def consumeToken(net_P, node, fourToken, w):
     # silent activity
-    if (len(net_P[node]) > 0) and validTimeGap(time, net_P[node][0], 0):        #have token already been produced
-        for (i, tokenPT) in enumerate(net_P[node]):
-            if validTimeGap(tokenPT, time, cddl):   #within the deadline
-                net_P[node].pop(i)
-                fourToken[1] = fourToken[1] + float(w)  # consume w token
-                break
-        else:   #exceed the deadline
-            fourToken[2] = fourToken[2] + float(w)  # miss w token
-            fourToken[1] = fourToken[1] + float(w)  # consume w token
+    if net_P[node] - w >= 0:
+        net_P[node] = net_P[node] - w
+        fourToken[1] = fourToken[1] + w             # consume w token
     else:
-        fourToken[2] = fourToken[2] + float(w)  # miss w token
-        fourToken[1] = fourToken[1] + float(w)  # consume w token
+        net_P[node] = 0
+        missingToken = w - net_P[node]
+        fourToken[2] = fourToken[2] + missingToken  # miss w token
+        fourToken[1] = fourToken[1] + w             # consume w token
     return
 
 # In:petri net, node, current time, four token list, token produce delay, place weighting factor
 # Out:/revised net
 # Function:produce/remain one token flow, end not remain
-def produceToken(net_P, node, time, fourToken, pd = float('0'), w = '1'):
-    net_P[node].append(str(float(time)+float(pd)))       #append the produced time
-    fourToken[0] = fourToken[0] + float(w)
+def produceToken(net_P, node, fourToken, w = 1):
+    net_P[node] = net_P[node] + w     #append the produced time
+    fourToken[0] = fourToken[0] + w
     fourToken[3] = fourToken[0] - fourToken[1] + fourToken[2]
     return
 
-#In: PetriNet_A2, protocol
-#Out: list of preset of [place, consumption delay]
-#Function: finding the pre set of a protocol
-def presetPlace(petriNet_A1, protocol):
-    res = []
-    for arcFrom in petriNet_A1:
-        if arcFrom[1] == protocol:
-            res.append([arcFrom[0], arcFrom[2]])
-    return res
 
-# In: PetriNet_A2, protocol
-# Out: list of postset of [place, production delay]
-# Function: finding the post set of a protocol
-def postsetPlace(petriNet_A2, protocol):
-    res = []
-    for arcTo in petriNet_A2:
-        if arcTo[0] == protocol:
-            res.append([arcTo[1], arcTo[2]])
-    return res
+def IpSimilarityCalculation(Ip11, Ip12, Ip21, Ip22):
+    sameNum1 = 0
+    sameNum2 = 0
+    [firstBit11, secondBit11, ThirdBit11, FourthBit11] = Ip11.split('.')
+    IpBin11= bin(int(firstBit11))[2:]+ bin(int(secondBit11))[2:]+bin(int(ThirdBit11))[2:]+ bin(int(FourthBit11))[2:]
+    [firstBit12, secondBit12, ThirdBit12, FourthBit12] = Ip12.split('.')
+    IpBin12 = bin(int(firstBit12))[2:] + bin(int(secondBit12))[2:] + bin(int(ThirdBit12))[2:] + bin(int(FourthBit12))[2:]
+    [firstBit21, secondBit21, ThirdBit21, FourthBit21] = Ip21.split('.')
+    IpBin21 = bin(int(firstBit21))[2:] + bin(int(secondBit21))[2:] + bin(int(ThirdBit21))[2:] + bin(int(FourthBit21))[2:]
+    [firstBit22, secondBit22, ThirdBit22, FourthBit22] = Ip22.split('.')
+    IpBin22 = bin(int(firstBit22))[2:] + bin(int(secondBit22))[2:] + bin(int(ThirdBit22))[2:] + bin(int(FourthBit22))[2:]
+    for i in range(32):
+        if IpBin11[i] == IpBin21[i]:
+            sameNum1 = sameNum1 + 1
+        else:
+            break
+    for j in range(32):
+        if IpBin12[j] == IpBin22[j]:
+            sameNum2 = sameNum2 + 1
+        else:
+            break
+    #print(IpBin11,IpBin12,IpBin21,IpBin22)
+    return max(sameNum1,sameNum2)/32
 
+
+def portSimilarityCalculation(Port11, Port12, Port21, Port22):
+    if ((Port11 == Port21) and (Port12 == Port22)):
+        return 1
+    elif ((Port11 == Port22) and (Port12 == Port21)):
+        return 1
+    else:
+        return 0
+
+def timeSimilarityCalculation(currTime,lastTime):
+    currTime = timeConversion(currTime)
+    lastTime = timeConversion(lastTime)
+    gap = float(currTime) - float(lastTime)
+    e = 2.718
+    print(e**(-gap))
+    return e**(-gap)
+
+def timeConversion(Time):
+    [h,m,s] = Time.split(':')
+    t = 60*(float(m) + 60*float(h)) + float(s)
+    return t
+
+def similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastDesPort, currSrcPort, currDesPort, lastTime, currTime):
+    coefficientIp = 0.6
+    coefficientTime = 0.25
+    coefficientPort = 0.15
+    if lastSrcIp == 'xxx.xxx.xxx.xxx':
+        similarity = 0.5
+    else:
+        SSDDIpSimilarity = IpSimilarityCalculation(lastSrcIp, currSrcIp, lastDesIp, currDesIp)
+        SDSDIpSimilarity = IpSimilarityCalculation(lastSrcIp, currDesIp, lastDesIp, currSrcIp)
+        IpSimilarity = coefficientIp * max(SSDDIpSimilarity,SDSDIpSimilarity)
+        portSimilarity = coefficientPort * portSimilarityCalculation(lastSrcPort, lastDesPort, currSrcPort, currDesPort)
+        timeSimilarity = coefficientTime * timeSimilarityCalculation(currTime,lastTime)
+        #print(currTime,lastTime, timeSimilarity)
+        similarity = IpSimilarity + portSimilarity + timeSimilarity
+    return similarity
 
 # In: petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, protocol, time
 # Out: \
 # Function: fire a protocol
-def fireProtocol(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, protocol, time):
-    protocolPreset = presetPlace(petriNet_A1, protocol)
-    protocolPostset = postsetPlace(petriNet_A2, protocol)
-    for [preplace, cddl] in protocolPreset:
-        if len(petriNet_P[preplace]) == 0:
-            for pro in petriNet_T:                          #silent activity execution first
-                if pro.split('*')[1] == 'SA':
-                    for [pla,_ ] in postsetPlace(petriNet_A2, pro):
-                        if pla == preplace:
-                            fireProtocol(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, pro, time)
-        consumeToken(petriNet_P, preplace, time, fourToken, cddl, preplace.split('*')[0])
-    for [postPlace, pd] in protocolPostset:
-        produceToken(petriNet_P, postPlace, time, fourToken, pd, postPlace.split('*')[0])
-    return
-
-
-
-
-#In: Protocol list of corresponding Ip chains to calculate fitness, four tokens list of traget chain, attacklist to detect, two dimensional step list, chain number
-#Out: two dimensional fitness list of the protocol list for the attack
-#Function: calculate the fitness of each attack for the protocol list
-def protoListFlow(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, petriNet_L, fourToken, inputSeq):
-    for p in petriNet_P:
-        if p.split('*')[1] == 'Start':
-            produceToken(petriNet_P, p, '0', fourToken, '0', p.split('*')[0])       #Start place
-            break
-    for [protocol, time] in inputSeq:
-        fireProtocol(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, protocol, time)
-    consumeToken(petriNet_P, '1*End', time, fourToken, float("inf"), '1')           #End place
-    fitness = calFitness(fourToken, petriNet_L)
+def fireAlert(fourToken, lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, currSrcPort, lastDesPort, currDesPort, lastTime, currTime, lastAlert, currentAlert, petriNet_P, ProbabilityMatrix, indexMap):
+    s = similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastDesPort, currSrcPort, currDesPort, lastTime, currTime)
+    updateProbabiity(s, lastAlert, currentAlert, ProbabilityMatrix,indexMap)
+    for t in indexMap:
+        consumeToken(petriNet_P, t, fourToken, ProbabilityMatrix[indexMap[lastAlert], indexMap[currentAlert]])
+    produceToken(petriNet_P, currentAlert, fourToken, 1)
+    fitness = calFitness(fourToken)
     return fitness
+
 
 #In:\grouped chain file data
 #Out: Attack chain
 #Function: Doing token replay, output attack chain
 def tokenReplay():
-    for root, dirs, files in os.walk('/home/jin/Documents/Generated Data/Grouped Chain'):
-        attackSeq = []
-        for file in files:
-            stepNum = 0
-            for (i, attack) in enumerate(AttackList):
-                inputSeq = []
-                fourToken = [0, 0, 0, 0]
-                with open('/home/jin/Documents/Generated Data/Grouped Chain/' + str(file), 'r') as f:
-                    reader = csv.reader(f)
-                    for (j, l) in enumerate(reader):
-                        # remove the head
-                        if (j == 0):
-                            continue
-                        else:
-                            petriNet_T = attack[0][stepNum]  # copy that for each file
-                            petriNet_P = attack[1][stepNum]
-                            petriNet_A1 = attack[2][stepNum]
-                            petriNet_A2 = attack[3][stepNum]
-                            petriNet_L = attack[4][stepNum]
-                            #print(petriNet_T)
-                            l = {'Protocol': l[1],'Time': l[2]}
-                            if l['Protocol'] in petriNet_T and (len(inputSeq) < 5*petriNet_L):
-                                inputSeq.append([l['Protocol'], l['Time']])         #input incresement
-                                fitness = protoListFlow(petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, petriNet_L, fourToken, inputSeq)
-                                if fitness > 0.8:                           #step transition
-                                    if stepNum < len(attack[0])-1:
-                                        chainNum = file.split('_')[3].split('.')[0]
-                                        attackSeq.append([chainNum, fitness, i, stepNum, inputSeq])
-                                        print([chainNum, fitness, i, stepNum, inputSeq])
-                                        inputSeq = []
-                                        stepNum = stepNum + 1
-                                    else:
-                                        print([chainNum, fitness, i, stepNum, inputSeq])
-                                        print('Attack Finished')
-                                        break
-                                for place in petriNet_P:
-                                    petriNet_P[place] = []
-                                    fourToken = [0, 0, 0, 0]
-        if len(attackSeq) > 0:
-            name = ['Chain Number', 'Fitness', 'Attack Number', 'Step', 'Sequence']
-            data = pd.DataFrame(columns=name, data=attackSeq)
-            data.to_csv('/home/jin/Documents/Generated Data/Attack Sequence/sequence data.csv')
-            print('Attack sequence finding done')
-        else:
-            print('no attack sequence found')
-    return
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside2_alert.csv', 'r') as f:
+        reader = csv.reader(f)
+        for (j, l) in enumerate(reader):
+            # remove the head
+            if (j == 0):
+                net_P = collections.defaultdict(float)
+                ProbabilityMatrix = np.zeros((len(indexMap),len(indexMap)),dtype=float) #arange(len(indexMap)**2).reshape(len(indexMap),len(indexMap))
+                initializeNet(net_P, indexMap)
+                initializeProbabiity(ProbabilityMatrix, indexMap)
+                lastSrcIp = 'xxx.xxx.xxx.xxx'
+                lastDesIp =  'xxx.xxx.xxx.xxx'
+                lastSrcPort = 'xx'
+                lastDesPort = 'xx'
+                lastTime = 'x:x:x'
+                lastAlert = 'Start'
+                fitnessT = 0.32
+                pathT = 0.25
+                fourToken = [0,0,0,0]
+                path = []
+                resList = []
+                pathNum = 0
+                continue
+            else:
+                l = {'Time': l[0],'SrcPort':l[1],'SrcIp':l[2],'DesPort':l[3],'DesIp':l[4],'AlertType':l[5]}
+                initializeProbabiity(ProbabilityMatrix, indexMap)
+                fitness = fireAlert(fourToken, lastSrcIp, l['SrcIp'], lastDesIp, l['DesIp'], lastSrcPort, l['SrcPort'], lastDesPort, l['DesPort'], lastTime, l['Time'], lastAlert,l['AlertType'], net_P, ProbabilityMatrix, indexMap)
+                if ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]] > pathT and ([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']] not in path):
+                    resList.append([lastAlert, l['AlertType'], fitness,l['SrcIp'],l['DesIp'], ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]]])
+                    path.append([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']])
+                lastSrcIp = l['SrcIp']
+                lastDesIp = l['DesIp']
+                lastSrcPort = l['SrcPort']
+                lastDesPort = l['DesPort']
+                lastTime = l['Time']
+                lastAlert = l['AlertType']
+            if fitness > fitnessT:
+                name = ['lastAlert', 'currAlert', 'fitness', 'SrcIp','DesIp', 'probability']
+                data = pd.DataFrame(columns=name, data=resList)
+                data.to_csv('/home/jin/Documents/Generated Data/record2.csv')
+                break
+
+
+                #print(fitness)
+'''                if fitness > fitnessT:  #and len(resList) > 20:                           #step transition
+                    for i in range(len(indexMap)):
+                        for j in range(len(indexMap)):
+                            p = ProbabilityMatrix[i, j]
+                            if p > pathT: #and ([alertList[i], alertList[j]] not in path):
+                                resList.append([alertList[i]+'->'+alertList[j], l['SrcIp'] +'->' + l['DesIp'], p])
+                                path.append([alertList[i], alertList[j]])
+                    #if 1:#len(resList) > 20:
+                    #    print(fitness)
+                    fourToken = [0, 0, 0, 0]
+                    for p in net_P:
+                        net_P[p] = 0
+                    initializeNet(net_P, indexMap)
+                    initializeProbabiity(ProbabilityMatrix, indexMap)
+                    lastSrcIp = 'xxx.xxx.xxx.xxx'
+                    lastDesIp = 'xxx.xxx.xxx.xxx'
+                    lastSrcPort = 'xx'
+                    lastDesPort = 'xx'
+                    lastTime = 'x:x:x'
+                    lastAlert = 'Start'
+                    pathNum = pathNum +1
+                    name = ['path','Ip', 'probability']
+                    data = pd.DataFrame(columns=name, data=resList)
+                    path = []
+                    resList = []
+                    data.to_csv('/home/jin/Documents/Generated Data/path_' + str(pathNum) +'.csv')
+                    print('Attack sequence found')'''
+                    #continue
+    #return
