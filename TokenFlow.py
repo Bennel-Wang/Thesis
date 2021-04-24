@@ -26,6 +26,10 @@ def updateProbabiity(similarity, lastTransition, currentTransition, ProbabilityM
     beta = (1-alpha)/(1-lastProbability) + alpha
     ProbabilityMatrix[:, indexMap[currentTransition]] = ProbabilityMatrix[:, indexMap[currentTransition]] * beta
     ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]] = ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]]/beta
+    if beta < 1:
+        return 'increase'
+    else:
+        return 'decrease'
 
 
 
@@ -42,17 +46,15 @@ def initializeProbabiity(ProbabilityMatrix, indexMap):
 #In: 4 tokens list, log number
 #Out: improved fitness value
 #Function: calculate fitness
-def calFitness(fourToken, factor = (len(indexMap)-1)/2):
-    const = 0.00001
+def calFitness(fourToken):
     p = fourToken[0]     #produced
     c = fourToken[1]     #consumed
     m = fourToken[2]     #missed
     r = fourToken[3]     #remained
-    fitness = 1 / 2 * (1 - m / (c + const)) + 1 / 2 * (1 - r / (p + const))
-    #if r - factor > 0:
-    #    fitness =  1/2 * (1 - m/(c+const)) + 1/2 * (1 - (r-factor)/(p+const))    #for numerator and denominator all 0, fitness = 0
-    #else:
-    #    fitness =  1/2 * (1 - m/(c+const))
+    if c!=0 and p!=0:
+        fitness = 1 / 2 * (1 - m / c) + 1 / 2 * (1 - r / p)
+    else:
+        fitness = 0
     return fitness
 
 
@@ -64,6 +66,7 @@ def consumeToken(net_P, node, fourToken, w):
     if net_P[node] - w >= 0:
         net_P[node] = net_P[node] - w
         fourToken[1] = fourToken[1] + w             # consume w token
+        missingToken = 0
     else:
         net_P[node] = 0
         missingToken = w - net_P[node]
@@ -103,7 +106,7 @@ def IpSimilarityCalculation(Ip11, Ip12, Ip21, Ip22):
         else:
             break
     #print(IpBin11,IpBin12,IpBin21,IpBin22)
-    return max(sameNum1,sameNum2)/32
+    return min(max(sameNum1,sameNum2),0.7*(sameNum1+sameNum2))/32
 
 
 def portSimilarityCalculation(Port11, Port12, Port21, Port22):
@@ -111,6 +114,10 @@ def portSimilarityCalculation(Port11, Port12, Port21, Port22):
         return 1
     elif ((Port11 == Port22) and (Port12 == Port21)):
         return 1
+    elif ((Port11 == Port21) or (Port12 == Port22)):
+        return 0.5
+    elif ((Port11 == Port22) or (Port12 == Port21)):
+        return 0.5
     else:
         return 0
 
@@ -120,7 +127,7 @@ def timeSimilarityCalculation(currTime,lastTime):
     gap = float(currTime) - float(lastTime)
     e = 2.718
     print(e**(-gap))
-    return e**(-gap)
+    return e**(-0.001*gap)
 
 def timeConversion(Time):
     [h,m,s] = Time.split(':')
@@ -129,8 +136,8 @@ def timeConversion(Time):
 
 def similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastDesPort, currSrcPort, currDesPort, lastTime, currTime):
     coefficientIp = 0.6
-    coefficientTime = 0.25
-    coefficientPort = 0.15
+    coefficientTime = 0.3
+    coefficientPort = 0.1
     if lastSrcIp == 'xxx.xxx.xxx.xxx':
         similarity = 0.5
     else:
@@ -141,6 +148,7 @@ def similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastD
         timeSimilarity = coefficientTime * timeSimilarityCalculation(currTime,lastTime)
         #print(currTime,lastTime, timeSimilarity)
         similarity = IpSimilarity + portSimilarity + timeSimilarity
+        #print(similarity)
     return similarity
 
 # In: petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, protocol, time
@@ -148,19 +156,19 @@ def similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastD
 # Function: fire a protocol
 def fireAlert(fourToken, lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, currSrcPort, lastDesPort, currDesPort, lastTime, currTime, lastAlert, currentAlert, petriNet_P, ProbabilityMatrix, indexMap):
     s = similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastDesPort, currSrcPort, currDesPort, lastTime, currTime)
-    updateProbabiity(s, lastAlert, currentAlert, ProbabilityMatrix,indexMap)
+    direction = updateProbabiity(s, lastAlert, currentAlert, ProbabilityMatrix,indexMap)
     for t in indexMap:
         consumeToken(petriNet_P, t, fourToken, ProbabilityMatrix[indexMap[lastAlert], indexMap[currentAlert]])
     produceToken(petriNet_P, currentAlert, fourToken, 1)
     fitness = calFitness(fourToken)
-    return fitness
+    return [direction,fitness]
 
 
 #In:\grouped chain file data
 #Out: Attack chain
 #Function: Doing token replay, output attack chain
 def tokenReplay():
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside2_alert.csv', 'r') as f:
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside1_alert.csv', 'r') as f:
         reader = csv.reader(f)
         for (j, l) in enumerate(reader):
             # remove the head
@@ -175,9 +183,10 @@ def tokenReplay():
                 lastDesPort = 'xx'
                 lastTime = 'x:x:x'
                 lastAlert = 'Start'
-                fitnessT = 0.32
-                pathT = 0.25
+                fitnessT = 0.36
+                pathT = 0.2 #0.325for 2
                 fourToken = [0,0,0,0]
+                lastFitness = 0.0
                 path = []
                 resList = []
                 pathNum = 0
@@ -185,50 +194,20 @@ def tokenReplay():
             else:
                 l = {'Time': l[0],'SrcPort':l[1],'SrcIp':l[2],'DesPort':l[3],'DesIp':l[4],'AlertType':l[5]}
                 initializeProbabiity(ProbabilityMatrix, indexMap)
-                fitness = fireAlert(fourToken, lastSrcIp, l['SrcIp'], lastDesIp, l['DesIp'], lastSrcPort, l['SrcPort'], lastDesPort, l['DesPort'], lastTime, l['Time'], lastAlert,l['AlertType'], net_P, ProbabilityMatrix, indexMap)
-                if ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]] > pathT and ([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']] not in path):
-                    resList.append([lastAlert, l['AlertType'], fitness,l['SrcIp'],l['DesIp'], ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]]])
-                    path.append([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']])
+                [direction, fitness] = fireAlert(fourToken, lastSrcIp, l['SrcIp'], lastDesIp, l['DesIp'], lastSrcPort, l['SrcPort'], lastDesPort, l['DesPort'], lastTime, l['Time'], lastAlert,l['AlertType'], net_P, ProbabilityMatrix, indexMap)
+                if direction == 'increase' and ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]] > pathT  and (fitness > lastFitness):
+                    if ([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']] not in path):
+                        resList.append([lastAlert, l['AlertType'], fitness,l['SrcIp'],l['DesIp'], ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]]])
+                        path.append([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']])
+                    lastFitness = fitness
                 lastSrcIp = l['SrcIp']
                 lastDesIp = l['DesIp']
                 lastSrcPort = l['SrcPort']
                 lastDesPort = l['DesPort']
                 lastTime = l['Time']
                 lastAlert = l['AlertType']
-            if fitness > fitnessT:
-                name = ['lastAlert', 'currAlert', 'fitness', 'SrcIp','DesIp', 'probability']
-                data = pd.DataFrame(columns=name, data=resList)
-                data.to_csv('/home/jin/Documents/Generated Data/record2.csv')
-                break
-
-
-                #print(fitness)
-'''                if fitness > fitnessT:  #and len(resList) > 20:                           #step transition
-                    for i in range(len(indexMap)):
-                        for j in range(len(indexMap)):
-                            p = ProbabilityMatrix[i, j]
-                            if p > pathT: #and ([alertList[i], alertList[j]] not in path):
-                                resList.append([alertList[i]+'->'+alertList[j], l['SrcIp'] +'->' + l['DesIp'], p])
-                                path.append([alertList[i], alertList[j]])
-                    #if 1:#len(resList) > 20:
-                    #    print(fitness)
-                    fourToken = [0, 0, 0, 0]
-                    for p in net_P:
-                        net_P[p] = 0
-                    initializeNet(net_P, indexMap)
-                    initializeProbabiity(ProbabilityMatrix, indexMap)
-                    lastSrcIp = 'xxx.xxx.xxx.xxx'
-                    lastDesIp = 'xxx.xxx.xxx.xxx'
-                    lastSrcPort = 'xx'
-                    lastDesPort = 'xx'
-                    lastTime = 'x:x:x'
-                    lastAlert = 'Start'
-                    pathNum = pathNum +1
-                    name = ['path','Ip', 'probability']
-                    data = pd.DataFrame(columns=name, data=resList)
-                    path = []
-                    resList = []
-                    data.to_csv('/home/jin/Documents/Generated Data/path_' + str(pathNum) +'.csv')
-                    print('Attack sequence found')'''
-                    #continue
-    #return
+            #if fitness > fitnessT:
+            name = ['lastAlert', 'currAlert', 'fitness', 'SrcIp','DesIp', 'probability']
+            data = pd.DataFrame(columns=name, data=resList)
+            data.to_csv('/home/jin/Documents/Generated Data/record1.csv')
+                #break
