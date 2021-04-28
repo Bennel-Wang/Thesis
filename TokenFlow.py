@@ -17,7 +17,7 @@ alertList= ['Start', 'Sadmind_Ping', 'TelnetTerminaltype', 'Email_Almail_Overflo
 
 def updateProbabiity(similarity, lastTransition, currentTransition, ProbabilityMatrix, indexMap):
     coefficient = 0.5
-    lastProbability = ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]]
+    lastProbability = ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]] + 0.0000001 #prevent denominator to be 0
     #print(coefficient, ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]],indexMap[currentTransition],similarity)
     ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]] = coefficient * ProbabilityMatrix[
         indexMap[lastTransition], indexMap[currentTransition]] + (1 - coefficient) * similarity
@@ -55,6 +55,7 @@ def calFitness(fourToken):
         fitness = 1 / 2 * (1 - m / c) + 1 / 2 * (1 - r / p)
     else:
         fitness = 0
+    print(fourToken)
     return fitness
 
 
@@ -66,10 +67,9 @@ def consumeToken(net_P, node, fourToken, w):
     if net_P[node] - w >= 0:
         net_P[node] = net_P[node] - w
         fourToken[1] = fourToken[1] + w             # consume w token
-        missingToken = 0
     else:
-        net_P[node] = 0
         missingToken = w - net_P[node]
+        net_P[node] = 0
         fourToken[2] = fourToken[2] + missingToken  # miss w token
         fourToken[1] = fourToken[1] + w             # consume w token
     return
@@ -106,8 +106,8 @@ def IpSimilarityCalculation(Ip11, Ip12, Ip21, Ip22):
         else:
             break
     #print(IpBin11,IpBin12,IpBin21,IpBin22)
-    return min(max(sameNum1,sameNum2),0.7*(sameNum1+sameNum2))/32
-
+    #return max(sameNum1,sameNum2)/32
+    return min(sameNum1,sameNum2)/32
 
 def portSimilarityCalculation(Port11, Port12, Port21, Port22):
     if ((Port11 == Port21) and (Port12 == Port22)):
@@ -115,9 +115,9 @@ def portSimilarityCalculation(Port11, Port12, Port21, Port22):
     elif ((Port11 == Port22) and (Port12 == Port21)):
         return 1
     elif ((Port11 == Port21) or (Port12 == Port22)):
-        return 0.5
+        return 1
     elif ((Port11 == Port22) or (Port12 == Port21)):
-        return 0.5
+        return 1
     else:
         return 0
 
@@ -126,8 +126,8 @@ def timeSimilarityCalculation(currTime,lastTime):
     lastTime = timeConversion(lastTime)
     gap = float(currTime) - float(lastTime)
     e = 2.718
-    print(e**(-gap))
-    return e**(-0.001*gap)
+    #print('time', e**(-0.01*gap))
+    return float(e**(-0.01*gap))
 
 def timeConversion(Time):
     [h,m,s] = Time.split(':')
@@ -135,15 +135,15 @@ def timeConversion(Time):
     return t
 
 def similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastDesPort, currSrcPort, currDesPort, lastTime, currTime):
-    coefficientIp = 0.6
-    coefficientTime = 0.3
-    coefficientPort = 0.1
+    coefficientIp = 0.5
+    coefficientTime = 0.25
+    coefficientPort = 0.25
     if lastSrcIp == 'xxx.xxx.xxx.xxx':
         similarity = 0.5
     else:
         SSDDIpSimilarity = IpSimilarityCalculation(lastSrcIp, currSrcIp, lastDesIp, currDesIp)
         SDSDIpSimilarity = IpSimilarityCalculation(lastSrcIp, currDesIp, lastDesIp, currSrcIp)
-        IpSimilarity = coefficientIp * max(SSDDIpSimilarity,SDSDIpSimilarity)
+        IpSimilarity = coefficientIp * max(0.6*SSDDIpSimilarity+0.6*SDSDIpSimilarity,1)
         portSimilarity = coefficientPort * portSimilarityCalculation(lastSrcPort, lastDesPort, currSrcPort, currDesPort)
         timeSimilarity = coefficientTime * timeSimilarityCalculation(currTime,lastTime)
         #print(currTime,lastTime, timeSimilarity)
@@ -168,7 +168,7 @@ def fireAlert(fourToken, lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort
 #Out: Attack chain
 #Function: Doing token replay, output attack chain
 def tokenReplay():
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside1_alert.csv', 'r') as f:
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside2_alert.csv', 'r') as f:
         reader = csv.reader(f)
         for (j, l) in enumerate(reader):
             # remove the head
@@ -183,31 +183,35 @@ def tokenReplay():
                 lastDesPort = 'xx'
                 lastTime = 'x:x:x'
                 lastAlert = 'Start'
-                fitnessT = 0.36
-                pathT = 0.2 #0.325for 2
+                fitnessT = 0.5
+                lastRemain = 0
+                pathT = 0.5 #0.325for 2
+                Rt = 0.5#remain threshold
                 fourToken = [0,0,0,0]
-                lastFitness = 0.0
+                #lastFitness = 0.0
                 path = []
                 resList = []
                 pathNum = 0
                 continue
             else:
                 l = {'Time': l[0],'SrcPort':l[1],'SrcIp':l[2],'DesPort':l[3],'DesIp':l[4],'AlertType':l[5]}
-                initializeProbabiity(ProbabilityMatrix, indexMap)
+                #initializeProbabiity(ProbabilityMatrix, indexMap)
                 [direction, fitness] = fireAlert(fourToken, lastSrcIp, l['SrcIp'], lastDesIp, l['DesIp'], lastSrcPort, l['SrcPort'], lastDesPort, l['DesPort'], lastTime, l['Time'], lastAlert,l['AlertType'], net_P, ProbabilityMatrix, indexMap)
-                if direction == 'increase' and ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]] > pathT  and (fitness > lastFitness):
-                    if ([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']] not in path):
-                        resList.append([lastAlert, l['AlertType'], fitness,l['SrcIp'],l['DesIp'], ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]]])
-                        path.append([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']])
-                    lastFitness = fitness
+                #print (fourToken[2] + fourToken[3] - lastMissRemain)
+                if direction == 'increase' and ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]] > pathT and (Rt < lastRemain - fourToken[3]):#  and (fitness > lastFitness):
+                    #if ([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']] not in path):
+                    resList.append([l['Time'], lastAlert, l['AlertType'], fitness,l['SrcIp'],l['DesIp'], ProbabilityMatrix[indexMap[lastAlert], indexMap[l['AlertType']]], fourToken[3]-lastRemain])
+                    #path.append([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']])
+                    #lastFitness = fitness
                 lastSrcIp = l['SrcIp']
                 lastDesIp = l['DesIp']
                 lastSrcPort = l['SrcPort']
                 lastDesPort = l['DesPort']
                 lastTime = l['Time']
+                lastRemain = fourToken[3]
                 lastAlert = l['AlertType']
-            #if fitness > fitnessT:
-            name = ['lastAlert', 'currAlert', 'fitness', 'SrcIp','DesIp', 'probability']
+        if fitness > fitnessT:
+            name = ['Time', 'lastAlert', 'currAlert', 'fitness', 'SrcIp','DesIp', 'probability','remain-lastRemain']
             data = pd.DataFrame(columns=name, data=resList)
-            data.to_csv('/home/jin/Documents/Generated Data/record1.csv')
+            data.to_csv('/home/jin/Documents/Generated Data/record2.csv')
                 #break
