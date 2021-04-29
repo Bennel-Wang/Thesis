@@ -23,9 +23,10 @@ def updateProbabiity(similarity, lastTransition, currentTransition, ProbabilityM
         indexMap[lastTransition], indexMap[currentTransition]] + (1 - coefficient) * similarity
     alpha = ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]]/lastProbability
     #print(alpha,lastProbability)
-    beta = (1-alpha)/(1-lastProbability) + alpha
+    beta = (1-alpha)/(1-lastProbability) + alpha + 0.0000001  #prevent denominator to be 0
     ProbabilityMatrix[:, indexMap[currentTransition]] = ProbabilityMatrix[:, indexMap[currentTransition]] * beta
     ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]] = ProbabilityMatrix[indexMap[lastTransition], indexMap[currentTransition]]/beta
+    #print(sum(ProbabilityMatrix[:, indexMap[currentTransition]]))
     if beta < 1:
         return 'increase'
     else:
@@ -84,17 +85,17 @@ def produceToken(net_P, node, fourToken, w = 1):
     return
 
 
-def IpSimilarityCalculation(Ip11, Ip12, Ip21, Ip22):
+def IpSimilarityCalculation(Ip11, Ip21, Ip12, Ip22):        #last source, current source, last destination, current destination
     sameNum1 = 0
     sameNum2 = 0
     [firstBit11, secondBit11, ThirdBit11, FourthBit11] = Ip11.split('.')
-    IpBin11= bin(int(firstBit11))[2:]+ bin(int(secondBit11))[2:]+bin(int(ThirdBit11))[2:]+ bin(int(FourthBit11))[2:]
+    IpBin11= bin(int(firstBit11))[2:].zfill(8)+ bin(int(secondBit11))[2:].zfill(8)+bin(int(ThirdBit11))[2:].zfill(8)+ bin(int(FourthBit11))[2:].zfill(8)
     [firstBit12, secondBit12, ThirdBit12, FourthBit12] = Ip12.split('.')
-    IpBin12 = bin(int(firstBit12))[2:] + bin(int(secondBit12))[2:] + bin(int(ThirdBit12))[2:] + bin(int(FourthBit12))[2:]
+    IpBin12 = bin(int(firstBit12))[2:].zfill(8) + bin(int(secondBit12))[2:].zfill(8) + bin(int(ThirdBit12))[2:].zfill(8) + bin(int(FourthBit12))[2:].zfill(8)
     [firstBit21, secondBit21, ThirdBit21, FourthBit21] = Ip21.split('.')
-    IpBin21 = bin(int(firstBit21))[2:] + bin(int(secondBit21))[2:] + bin(int(ThirdBit21))[2:] + bin(int(FourthBit21))[2:]
+    IpBin21 = bin(int(firstBit21))[2:].zfill(8) + bin(int(secondBit21))[2:].zfill(8) + bin(int(ThirdBit21))[2:].zfill(8) + bin(int(FourthBit21))[2:].zfill(8)
     [firstBit22, secondBit22, ThirdBit22, FourthBit22] = Ip22.split('.')
-    IpBin22 = bin(int(firstBit22))[2:] + bin(int(secondBit22))[2:] + bin(int(ThirdBit22))[2:] + bin(int(FourthBit22))[2:]
+    IpBin22 = bin(int(firstBit22))[2:].zfill(8) + bin(int(secondBit22))[2:].zfill(8) + bin(int(ThirdBit22))[2:].zfill(8) + bin(int(FourthBit22))[2:].zfill(8)
     for i in range(32):
         if IpBin11[i] == IpBin21[i]:
             sameNum1 = sameNum1 + 1
@@ -105,9 +106,13 @@ def IpSimilarityCalculation(Ip11, Ip12, Ip21, Ip22):
             sameNum2 = sameNum2 + 1
         else:
             break
-    #print(IpBin11,IpBin12,IpBin21,IpBin22)
+    #print(Ip11, Ip21, Ip12, Ip22)
+    #print(sameNum1, sameNum2)
     #return max(sameNum1,sameNum2)/32
-    return min(sameNum1,sameNum2)/32
+    if max(sameNum1,sameNum2) == 32:
+        return 1
+    else:
+        return max(sameNum1,sameNum2)/32
 
 def portSimilarityCalculation(Port11, Port12, Port21, Port22):
     if ((Port11 == Port21) and (Port12 == Port22)):
@@ -135,20 +140,19 @@ def timeConversion(Time):
     return t
 
 def similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastDesPort, currSrcPort, currDesPort, lastTime, currTime):
-    coefficientIp = 0.5
-    coefficientTime = 0.25
+    coefficientIp = 0.6
+    coefficientTime = 0.15
     coefficientPort = 0.25
     if lastSrcIp == 'xxx.xxx.xxx.xxx':
         similarity = 0.5
     else:
         SSDDIpSimilarity = IpSimilarityCalculation(lastSrcIp, currSrcIp, lastDesIp, currDesIp)
         SDSDIpSimilarity = IpSimilarityCalculation(lastSrcIp, currDesIp, lastDesIp, currSrcIp)
-        IpSimilarity = coefficientIp * max(0.6*SSDDIpSimilarity+0.6*SDSDIpSimilarity,1)
+        IpSimilarity = coefficientIp * max(SSDDIpSimilarity, SDSDIpSimilarity)
         portSimilarity = coefficientPort * portSimilarityCalculation(lastSrcPort, lastDesPort, currSrcPort, currDesPort)
         timeSimilarity = coefficientTime * timeSimilarityCalculation(currTime,lastTime)
         #print(currTime,lastTime, timeSimilarity)
         similarity = IpSimilarity + portSimilarity + timeSimilarity
-        #print(similarity)
     return similarity
 
 # In: petriNet_T, petriNet_P, petriNet_A1, petriNet_A2, fourToken, protocol, time
@@ -158,7 +162,7 @@ def fireAlert(fourToken, lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort
     s = similarityCal(lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort, lastDesPort, currSrcPort, currDesPort, lastTime, currTime)
     direction = updateProbabiity(s, lastAlert, currentAlert, ProbabilityMatrix,indexMap)
     for t in indexMap:
-        consumeToken(petriNet_P, t, fourToken, ProbabilityMatrix[indexMap[lastAlert], indexMap[currentAlert]])
+        consumeToken(petriNet_P, t, fourToken, ProbabilityMatrix[indexMap[t], indexMap[currentAlert]])
     produceToken(petriNet_P, currentAlert, fourToken, 1)
     fitness = calFitness(fourToken)
     return [direction,fitness]
@@ -168,7 +172,7 @@ def fireAlert(fourToken, lastSrcIp, currSrcIp, lastDesIp, currDesIp, lastSrcPort
 #Out: Attack chain
 #Function: Doing token replay, output attack chain
 def tokenReplay():
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside2_alert.csv', 'r') as f:
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside1_alert.csv', 'r') as f:
         reader = csv.reader(f)
         for (j, l) in enumerate(reader):
             # remove the head
@@ -183,24 +187,27 @@ def tokenReplay():
                 lastDesPort = 'xx'
                 lastTime = 'x:x:x'
                 lastAlert = 'Start'
-                fitnessT = 0.5
+                fitnessT = 0.95
                 lastRemain = 0
-                pathT = 0.5 #0.325for 2
-                Rt = 0.5#remain threshold
+                lastMiss = 0
+                pathT = 0.5
+                #Rt = 0.1    #remain threshold
+                #Mt = 0.1      #remaining token can decrease, but missing can only increase
+                RMt = 0.2
                 fourToken = [0,0,0,0]
                 #lastFitness = 0.0
                 path = []
                 resList = []
-                pathNum = 0
+                pathNum = 0.5
                 continue
             else:
                 l = {'Time': l[0],'SrcPort':l[1],'SrcIp':l[2],'DesPort':l[3],'DesIp':l[4],'AlertType':l[5]}
                 #initializeProbabiity(ProbabilityMatrix, indexMap)
                 [direction, fitness] = fireAlert(fourToken, lastSrcIp, l['SrcIp'], lastDesIp, l['DesIp'], lastSrcPort, l['SrcPort'], lastDesPort, l['DesPort'], lastTime, l['Time'], lastAlert,l['AlertType'], net_P, ProbabilityMatrix, indexMap)
                 #print (fourToken[2] + fourToken[3] - lastMissRemain)
-                if direction == 'increase' and ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]] > pathT and (Rt < lastRemain - fourToken[3]):#  and (fitness > lastFitness):
+                if direction == 'increase' and ProbabilityMatrix[indexMap[lastAlert],indexMap[l['AlertType']]] > pathT and (fourToken[3] + fourToken[2] - lastMiss -lastRemain > RMt):#  and (fitness > lastFitness):
                     #if ([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']] not in path):
-                    resList.append([l['Time'], lastAlert, l['AlertType'], fitness,l['SrcIp'],l['DesIp'], ProbabilityMatrix[indexMap[lastAlert], indexMap[l['AlertType']]], fourToken[3]-lastRemain])
+                    resList.append([l['Time'], lastAlert, l['AlertType'], fitness,l['SrcIp'],l['DesIp'], ProbabilityMatrix[indexMap[lastAlert], indexMap[l['AlertType']]], fourToken[3]- lastRemain, fourToken[2]- lastMiss ])
                     #path.append([lastAlert, l['AlertType'],l['SrcIp'],l['DesIp']])
                     #lastFitness = fitness
                 lastSrcIp = l['SrcIp']
@@ -208,10 +215,11 @@ def tokenReplay():
                 lastSrcPort = l['SrcPort']
                 lastDesPort = l['DesPort']
                 lastTime = l['Time']
+                lastMiss = fourToken[2]
                 lastRemain = fourToken[3]
                 lastAlert = l['AlertType']
-        if fitness > fitnessT:
-            name = ['Time', 'lastAlert', 'currAlert', 'fitness', 'SrcIp','DesIp', 'probability','remain-lastRemain']
+        #if fitness > fitnessT:
+            name = ['Time', 'lastAlert', 'currAlert', 'fitness', 'SrcIp','DesIp', 'probability','remain- lastRemain','miss- lastMiss']
             data = pd.DataFrame(columns=name, data=resList)
-            data.to_csv('/home/jin/Documents/Generated Data/record2.csv')
-                #break
+            data.to_csv('/home/jin/Documents/Generated Data/record1.csv')
+            #break
