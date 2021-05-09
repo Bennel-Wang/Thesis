@@ -3,6 +3,8 @@ import os
 import csv
 import pandas as pd
 import numpy as np
+import math
+#for file 1,2, 0.8, 3600s
 
 #first initialize a maximum number, then if any new, update the number and re-normalize
 indexMap = {'Start':0, 'Sadmind_Ping':1, 'TelnetTerminaltype': 2, 'Email_Almail_Overflow':3, 'Email_Ehlo':4, 'FTP_User':5, 'FTP_Pass':6,
@@ -23,16 +25,17 @@ alertColorList= {'Start':-1, 'Sadmind_Ping':-1, 'TelnetTerminaltype':-1, 'Email_
 
 
 def calFitness(petriNet):
-    totalTokenNum = 0
-    emptyNum = 0
+    nonCasualNum = 0
+    casualNum = 0
     for a in petriNet:
         tokenNum = petriNet[a]
-        if tokenNum >0:  #not visited
-            totalTokenNum = totalTokenNum + tokenNum
+        #print(tokenNum)
+        if tokenNum > 0:  #not visited
+            nonCasualNum = tokenNum + 1
         if tokenNum == 0:   #successfully consumed
-            emptyNum = emptyNum + 1
-            totalTokenNum = totalTokenNum + 1
-    fitness = emptyNum/totalTokenNum
+            casualNum = casualNum + 1
+            #totalTokenNum = totalTokenNum + 1
+    fitness = casualNum/nonCasualNum
     return fitness
 
 def initializeNet(net_P, indexMap):
@@ -60,9 +63,8 @@ def timeSimilarityCalculation(currTime,lastTime):
     currTime = timeConversion(currTime)
     lastTime = timeConversion(lastTime)
     gap = float(currTime) - float(lastTime)
-    e = 2.718
-    #print('time', e**(-0.01*gap))
-    return float(e**(-0.01*gap))
+    exp = int(gap/5)
+    return float((1/2)**(exp))
 
 def timeConversion(Time):
     [h,m,s] = Time.split(':')
@@ -70,8 +72,8 @@ def timeConversion(Time):
     return t
 
 def similarityCal(SrcIp, currSrcIp, DesIp, currDesIp, Time, currTime):
-    coefficientIp = 0.9
-    coefficientTime = 0.1
+    coefficientIp = 0.6
+    coefficientTime = 0.4
     #coefficientPort = 0
     if SrcIp == 'xxx.xxx.xxx.xxx':
         similarity = 1
@@ -130,15 +132,12 @@ def IpSimilarityCalculation(Ip11, Ip21, Ip12, Ip22):        #last source, curren
     #print(Ip11, Ip21, Ip12, Ip22)
     #print(sameNum1, sameNum2)
     #return max(sameNum1,sameNum2)/32
-    if max(sameNum1,sameNum2) == 32:
-        return 1
-    else:
-        return max(sameNum1,sameNum2)/32
+    return 2/3*max(sameNum1, sameNum2)/32 + 1/3*min(sameNum1, sameNum2)/32
 
 
 
 def updateCorrelation(similarity, Transition, currentTransition, correlationMatrix, indexMap):
-    coefficient = 0.3
+    coefficient = 0.2
     correlationMatrix[indexMap[Transition], indexMap[currentTransition]] = coefficient * correlationMatrix[
         indexMap[Transition], indexMap[currentTransition]] + (1 - coefficient) * similarity
 
@@ -158,25 +157,28 @@ def fireAlert(currSrcIp, currDesIp, currentAlert, currentTime, petriNet_P, corre
             IpNum = IpNum + 1
         updateCorrelation(s/(IpNum+0.0001), alert, currentAlert, correlationMatrix, indexMap)
 
+    link = False
     for t in indexMap:
-        if correlationMatrix[indexMap[t], indexMap[currentAlert]] >= 0.85:
-            success = consumeToken(petriNet_P, t)
-            if success:
-                consumeList.append(t)
+        if correlationMatrix[indexMap[t], indexMap[currentAlert]] > 0.6399: #0.637= 0.8*0.8 + 0.8*0.8*0.2 #0.89645=0.95*0.7+0.95*0.7*0.3, 0.95 = 0.9*0.95Ip + 0.1*0.95Time
+            consumeToken(petriNet_P, t)
+            consumeList.append(t)
+        if correlationMatrix[indexMap[t], indexMap[currentAlert]] > 0.7999 or len(consumeList)>2:
+            link = True
+
     produceToken(petriNet_P, currentAlert, 1)
     fitness = calFitness(petriNet_P)
     alertIpList[currentAlert].append(currSrcIp + '-' + currDesIp + '-' + currentTime)
 
     for a in alertIpList:
         while len(alertIpList[a])>0:
-            if timeConversion(currentTime) - timeConversion(alertIpList[a][0].split('-')[2]) > 600:
+            if timeConversion(currentTime) - timeConversion(alertIpList[a][0].split('-')[2]) > 100 or len(alertIpList[a])>9: #every 50s to 1/1024, correspond to hyper alert
                 alertIpList[a].pop(0)
             else:
                 break
-    return [consumeList, fitness]
+    return [link, consumeList, fitness]
 
 def hyperAlertGrouping():
-    with open('/home/jin/Documents/Generated Data/record-new1.csv', 'r') as f:
+    with open('/home/jin/Documents/Generated Data/record2-new-color.csv', 'r') as f:
         reader = csv.reader(f)
         for (j, l) in enumerate(reader):
             # remove the head
@@ -184,11 +186,11 @@ def hyperAlertGrouping():
                 result = []
                 continue
             else:
-                l = {'Time': l[1], 'lastAlert': l[2], 'currAlert': l[3], 'fitness': l[4], 'SrcIp': l[5], 'DesIp': l[6], 'probability':l[7], 'remain-lastRemain':l[8]}
+                l = {'Time': l[1], 'consumeAlert': l[2], 'currAlert': l[3], 'fitness': l[4], 'SrcIp': l[5], 'DesIp': l[6]}
                 #print(l)
                 for i in range(0,len(result)):
-                    #gap = timeConversion(l['Time']) - timeConversion(result[i][0])
-                    if((l['lastAlert'] == result[i][1]) and (l['currAlert'] == result[i][2])):
+                    gap = timeConversion(l['Time']) - timeConversion(result[i][0])
+                    if((l['consumeAlert'] == result[i][1]) and (l['currAlert'] == result[i][2]) and gap<=100):  #bigger corresponding to less alert
                         if (l['SrcIp'] == result[i][4]) and (l['DesIp'] in result[i][5]):
                             #print(gap)
                             break   #group
@@ -199,14 +201,15 @@ def hyperAlertGrouping():
                         #    result[i][4].append(l['SrcIp'])
                         #    break   #group
                 else:   #all with not satisfy
-                    result.append([l['Time'], l['lastAlert'], l['currAlert'], l['fitness'], l['SrcIp'], [l['DesIp']]])
+                    result.append([l['Time'], l['consumeAlert'], l['currAlert'], l['fitness'], l['SrcIp'], [l['DesIp']]])
                 #record.append(
                 #    {'Time': l['Time'], 'lastAlert': l['lastAlert'], 'currAlert': l['currAlert'], 'SrcIp': l['SrcIp'],
                 #     'DesIp': l['DesIp']})
-        name = ['Time', 'lastAlert', 'currAlert', 'fitness', 'SrcIp', 'DesIp']
+        name = ['Time', 'consumeAlert', 'currAlert', 'fitness', 'SrcIp', 'DesIp']
         data = pd.DataFrame(columns=name, data=result)
-        data.to_csv('/home/jin/Documents/Generated Data/recordnew1-hyper.csv')
+        data.to_csv('/home/jin/Documents/Generated Data/record-new2-color-hyper.csv')
             # break
+
 
 
 
@@ -214,36 +217,71 @@ def hyperAlertGrouping():
 #Out: Attack chain
 #Function: Doing token replay, output attack chain
 def tokenReplay():
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside1_alert.csv', 'r') as f:
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside2_alert.csv', 'r') as f:
         reader = csv.reader(f)
         for (j, l) in enumerate(reader):
             # remove the head
             if (j == 0):
                 net_P = alertColorList
+                #the matrix can be initialized as 0.8 to correlate alert like SteamedDoS
                 correlationMatrix = np.zeros((len(indexMap),len(indexMap)),dtype=float) #arange(len(indexMap)**2).reshape(len(indexMap),len(indexMap))
                 initializeNet(net_P, indexMap)
                 initializeCorrelation(correlationMatrix, indexMap)
-                pathTl = 0.8      #prevent no frequent
-                lastMiss = 0
-                Mt = 0.2
-                fourToken = [0,0,0,0]
+                step = 0
+                stepSwitch = False
+                stepFlag = False  #True for instep, False for not in step
+                stepFlagTu = 8         #both of 7 for file 1 and 7 for file 2
+                stepFlagTl = 8
+                fitnessT = 1
                 resList = []
+                record = []
+                #print('enter step0' + ' 0:0:0')
+                lastFitness = 0
+                consecutiveIncrease = 0
+                consecutiveDecrease = 0
+                consecutiveChangeNum = 2
+                # print('enter step0' + ' 0:0:0')
                 continue
             else:
                 l = {'Time': l[0],'SrcPort':l[1],'SrcIp':l[2],'DesPort':l[3],'DesIp':l[4],'AlertType':l[5]}
-                [consumeList, fitness] = fireAlert(l['SrcIp'], l['DesIp'],l['AlertType'], l['Time'],net_P, correlationMatrix, indexMap, alertIpList)
-                if len(consumeList) > 0:
-                    resList.append([l['Time'], consumeList, l['AlertType'],  fitness,l['SrcIp'],l['DesIp']])
+                [link, consumeList, fitness] = fireAlert(l['SrcIp'], l['DesIp'],l['AlertType'], l['Time'],net_P, correlationMatrix, indexMap, alertIpList)
+                #if len(consumeList) > 0 and fitness >= fitnessT:
+                record.append([l['Time'], consumeList, l['AlertType'],  fitness,l['SrcIp'],l['DesIp']])
 
-        #if fitness > fitnessT:
+                if (fitness - lastFitness < 0):
+                    consecutiveDecrease = consecutiveDecrease + 1
+                    consecutiveIncrease = 0
+                else:
+                    consecutiveIncrease = consecutiveIncrease + 1
+                    consecutiveDecrease = 0
+
+                if stepFlag == True and (fitness<stepFlagTu): #and (consecutiveDecrease >= consecutiveChangeNum):    #use fluctuation to increase step
+                    step = step + 1
+                    stepFlag = False
+                    print('outside step' + str(step-1) + ' ' + l['Time'])
+                if (fitness>stepFlagTl):# and  (consecutiveIncrease >= consecutiveChangeNum):    #in step
+                    if stepFlag == False:
+                        print('inside step' + str(step) + ' '+ l['Time'])
+                        stepFlag = True
+
+                #if stepFlag and len(record[-consecutiveChangeNum][1]) > 0 :
+                #    resList.append(record[-consecutiveChangeNum])
+                if link:
+                    resList.append([l['Time'], consumeList, l['AlertType'],  fitness,l['SrcIp'],l['DesIp']])
+                lastFitness = fitness
+        #if step > 6:
+                #if fitness < 1:
         name = ['Time', 'consumeAlert','currAlert', 'fitness', 'SrcIp','DesIp']
         data = pd.DataFrame(columns=name, data=resList)
-        data.to_csv('/home/jin/Documents/Generated Data/record-new-color.csv')
+        data.to_csv('/home/jin/Documents/Generated Data/record2-new-color.csv')
+        print('Attack Found, End Detection ' + l['Time'])
+                    #break
+        #    break
 
 
 def main():
     tokenReplay()
-    #hyperAlertGrouping()
+    hyperAlertGrouping()
     print('Detection done')
 if __name__ == '__main__':
     main()
