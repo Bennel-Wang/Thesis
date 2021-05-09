@@ -4,6 +4,7 @@ import csv
 import pandas as pd
 import numpy as np
 import math
+from graphviz import Digraph
 #for file 1,2, 0.8, 3600s
 
 #first initialize a maximum number, then if any new, update the number and re-normalize
@@ -22,6 +23,39 @@ alertColorList= {'Start':-1, 'Sadmind_Ping':-1, 'TelnetTerminaltype':-1, 'Email_
             'HTTP_Cisco_Catalyst_Exec':-1, 'SSH_Detected':-1, 'Email_Debug':-1, 'TelnetXdisplay':-1, 'TelnetEnvAll':-1, 'Stream_DoS':-1,
             'FTP_Put':-1, 'Email_Turn':-1, 'HTTP_ActiveX':-1,'Port_Scan':-1, 'TCP_Urgent_Data':-1,'RIPExpire':-1,'RIPAdd':-1}
 #-1:not token, 0: consequence consumed, other number: token number
+datasetNum = '1'
+
+def visualization():
+    with open('/home/jin/Documents/Generated Data/record-new' + datasetNum + '-color-hyper.csv', 'r') as f:
+        reader = csv.reader(f)
+        for (j, l) in enumerate(reader):
+            # remove the head
+            if (j == 0):
+                nodeList = []
+                edgeList = []
+                edgeNum = 0
+                linkFreq = collections.defaultdict(int)
+                dot = Digraph(name='connection-record' + datasetNum + '-new-color-hyper', comment='connection-record' + datasetNum + '-new-color-hyper', format="png")
+                continue
+            else:
+                l = {'Time': l[1], 'consumeAlert': l[2], 'currAlert': l[3]}
+                if l['currAlert'] not in nodeList:
+                    dot.node(name=l['currAlert'], label=l['currAlert'])
+                    nodeList.append(l['currAlert'])
+                for cA in l['consumeAlert'].split("'"):
+                    linkFreq[cA + '-' + l['currAlert']] = linkFreq[cA + '-' + l['currAlert']] + 1 #filter because is weak link
+                    if cA != '[' and cA!=']' and cA != ', ':
+                        #print(cA)
+                        if cA not in nodeList:
+                            dot.node(name=cA, label=cA)
+                            nodeList.append(cA)
+                        if linkFreq[cA +'-'+ l['currAlert']]>0 and ((cA +'-'+ l['currAlert']) not in edgeList): #and cA != l['currAlert']:
+                            dot.edge(cA, l['currAlert'])
+                            edgeNum = edgeNum + 1
+                            edgeList.append(cA +'-'+ l['currAlert'])
+    #print(edgeNum)
+    dot.render(filename='connection-record' + datasetNum + '-new-color-hyper', directory="/home/jin/Documents/Generated Data",view =True)
+
 
 
 def calFitness(petriNet):
@@ -63,7 +97,7 @@ def timeSimilarityCalculation(currTime,lastTime):
     currTime = timeConversion(currTime)
     lastTime = timeConversion(lastTime)
     gap = float(currTime) - float(lastTime)
-    exp = int(gap/5)
+    exp = int(gap/120)
     return float((1/2)**(exp))
 
 def timeConversion(Time):
@@ -162,7 +196,7 @@ def fireAlert(currSrcIp, currDesIp, currentAlert, currentTime, petriNet_P, corre
         if correlationMatrix[indexMap[t], indexMap[currentAlert]] > 0.6399: #0.637= 0.8*0.8 + 0.8*0.8*0.2 #0.89645=0.95*0.7+0.95*0.7*0.3, 0.95 = 0.9*0.95Ip + 0.1*0.95Time
             consumeToken(petriNet_P, t)
             consumeList.append(t)
-        if correlationMatrix[indexMap[t], indexMap[currentAlert]] > 0.7999 or len(consumeList)>2:
+        if correlationMatrix[indexMap[t], indexMap[currentAlert]] > 0.7999 or len(consumeList)>3:
             link = True
 
     produceToken(petriNet_P, currentAlert, 1)
@@ -171,14 +205,14 @@ def fireAlert(currSrcIp, currDesIp, currentAlert, currentTime, petriNet_P, corre
 
     for a in alertIpList:
         while len(alertIpList[a])>0:
-            if timeConversion(currentTime) - timeConversion(alertIpList[a][0].split('-')[2]) > 100 or len(alertIpList[a])>9: #every 50s to 1/1024, correspond to hyper alert
+            if timeConversion(currentTime) - timeConversion(alertIpList[a][0].split('-')[2]) > 1200 or len(alertIpList[a])>12: #every 50s to 1/1024, correspond to hyper alert
                 alertIpList[a].pop(0)
             else:
                 break
     return [link, consumeList, fitness]
 
 def hyperAlertGrouping():
-    with open('/home/jin/Documents/Generated Data/record2-new-color.csv', 'r') as f:
+    with open('/home/jin/Documents/Generated Data/record' + datasetNum + '-new-color.csv', 'r') as f:
         reader = csv.reader(f)
         for (j, l) in enumerate(reader):
             # remove the head
@@ -190,7 +224,7 @@ def hyperAlertGrouping():
                 #print(l)
                 for i in range(0,len(result)):
                     gap = timeConversion(l['Time']) - timeConversion(result[i][0])
-                    if((l['consumeAlert'] == result[i][1]) and (l['currAlert'] == result[i][2]) and gap<=100):  #bigger corresponding to less alert
+                    if((l['consumeAlert'] == result[i][1]) and (l['currAlert'] == result[i][2]) and gap<=1200):  #bigger corresponding to less alert
                         if (l['SrcIp'] == result[i][4]) and (l['DesIp'] in result[i][5]):
                             #print(gap)
                             break   #group
@@ -207,7 +241,7 @@ def hyperAlertGrouping():
                 #     'DesIp': l['DesIp']})
         name = ['Time', 'consumeAlert', 'currAlert', 'fitness', 'SrcIp', 'DesIp']
         data = pd.DataFrame(columns=name, data=result)
-        data.to_csv('/home/jin/Documents/Generated Data/record-new2-color-hyper.csv')
+        data.to_csv('/home/jin/Documents/Generated Data/record-new' + datasetNum + '-color-hyper.csv')
             # break
 
 
@@ -217,7 +251,7 @@ def hyperAlertGrouping():
 #Out: Attack chain
 #Function: Doing token replay, output attack chain
 def tokenReplay():
-    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside2_alert.csv', 'r') as f:
+    with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/inside' + datasetNum + '_alert.csv', 'r') as f:
         reader = csv.reader(f)
         for (j, l) in enumerate(reader):
             # remove the head
@@ -230,8 +264,8 @@ def tokenReplay():
                 step = 0
                 stepSwitch = False
                 stepFlag = False  #True for instep, False for not in step
-                stepFlagTu = 8         #both of 7 for file 1 and 7 for file 2
-                stepFlagTl = 8
+                stepFlagTu = 9         #both of 7 for file 1 and 7 for file 2
+                stepFlagTl = 7
                 fitnessT = 1
                 resList = []
                 record = []
@@ -239,7 +273,7 @@ def tokenReplay():
                 lastFitness = 0
                 consecutiveIncrease = 0
                 consecutiveDecrease = 0
-                consecutiveChangeNum = 2
+                consecutiveChangeNum = 1
                 # print('enter step0' + ' 0:0:0')
                 continue
             else:
@@ -248,32 +282,32 @@ def tokenReplay():
                 #if len(consumeList) > 0 and fitness >= fitnessT:
                 record.append([l['Time'], consumeList, l['AlertType'],  fitness,l['SrcIp'],l['DesIp']])
 
-                if (fitness - lastFitness < 0):
+                if (fitness - lastFitness < -2):
                     consecutiveDecrease = consecutiveDecrease + 1
                     consecutiveIncrease = 0
-                else:
+                elif (fitness - lastFitness > 2):
                     consecutiveIncrease = consecutiveIncrease + 1
                     consecutiveDecrease = 0
 
-                if stepFlag == True and (fitness<stepFlagTu): #and (consecutiveDecrease >= consecutiveChangeNum):    #use fluctuation to increase step
+                if stepFlag == True and (consecutiveDecrease >= consecutiveChangeNum):    #use fluctuation to increase step
                     step = step + 1
                     stepFlag = False
                     print('outside step' + str(step-1) + ' ' + l['Time'])
-                if (fitness>stepFlagTl):# and  (consecutiveIncrease >= consecutiveChangeNum):    #in step
+                if (consecutiveIncrease >= consecutiveChangeNum):    #in step
                     if stepFlag == False:
                         print('inside step' + str(step) + ' '+ l['Time'])
                         stepFlag = True
 
                 #if stepFlag and len(record[-consecutiveChangeNum][1]) > 0 :
                 #    resList.append(record[-consecutiveChangeNum])
-                if link:
+                if link and stepFlag:
                     resList.append([l['Time'], consumeList, l['AlertType'],  fitness,l['SrcIp'],l['DesIp']])
                 lastFitness = fitness
         #if step > 6:
                 #if fitness < 1:
         name = ['Time', 'consumeAlert','currAlert', 'fitness', 'SrcIp','DesIp']
         data = pd.DataFrame(columns=name, data=resList)
-        data.to_csv('/home/jin/Documents/Generated Data/record2-new-color.csv')
+        data.to_csv('/home/jin/Documents/Generated Data/record' + datasetNum + '-new-color.csv')
         print('Attack Found, End Detection ' + l['Time'])
                     #break
         #    break
@@ -282,6 +316,7 @@ def tokenReplay():
 def main():
     tokenReplay()
     hyperAlertGrouping()
+    visualization()
     print('Detection done')
 if __name__ == '__main__':
     main()
