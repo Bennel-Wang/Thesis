@@ -1,21 +1,83 @@
+from datastructure import windowTime
+from datastructure import decayPeriod
+from datastructure import alpha
+
+def fitCalculation(petriNetPlace):
+    d = 0
+    n = 0
+    for p in petriNetPlace:
+        if petriNetPlace[p] != 0:
+            n += 1
+        d += 1
+    return n/d
+
+def simCal(srcIpRec, desIpRec, srcIpCur, desIpCur, IpFT, timeRec, timeCur, patternProb):
+    SSDD = IpSimilarityCalculation(srcIpRec, srcIpCur, desIpRec, desIpCur)
+    SDSD = IpSimilarityCalculation(srcIpRec, desIpCur, srcIpCur, desIpRec)
+    ipSim = max(SSDD, SDSD)
+    srcIpFreq = IpFT[srcIpCur]
+    desIpFreq = IpFT[desIpCur]
+    maxIpFreq = max(srcIpFreq, desIpFreq)
+    IpInterval = float(timeCur) - float(timeRec)
+    IpFTSim = IpFreqIntervalSim(IpInterval, decayPeriod, maxIpFreq)
+    sim = alpha * ipSim + ((1-alpha)/2) * IpFTSim + ((1-alpha)/2) * patternProb
+    return sim
+
+def fromAlertsrcProb(alertSrc, alertDes, alertList, patternMatrix):
+    totalFreq = 0
+    for a in alertList:
+        totalFreq = totalFreq + patternMatrix[(a,alertDes)]
+    if totalFreq !=0:
+        return patternMatrix[(alertSrc,alertDes)]/totalFreq
+    else:
+        return 0.5
+
+def windowUpdate(windowList, alertInfo, IpFT):
+    time = alertInfo[0]
+    srcip = alertInfo[2]
+    desip = alertInfo[3]
+    windowList.append(alertInfo)
+    IpFreqIntervalIn(srcip, IpFT)
+    IpFreqIntervalIn(desip, IpFT)
+    while len(windowList) > 0:
+        oldestInfo = windowList[0]
+        oldest_time = oldestInfo[0]
+        oldest_srcip = oldestInfo[2]
+        oldest_desip = oldestInfo[3]
+        if not validTimeGap(oldest_time, time, windowTime):
+            windowList.pop(0)
+            IpFreqIntervalOut(oldest_srcip, IpFT)
+            IpFreqIntervalOut(oldest_desip, IpFT)
+        else:
+            break
+    return
+
 def patternMatrixInit(alertList, patternMatrix):
     for a1 in alertList:
         for a2 in alertList:
             patternMatrix[(a1, a2)] = 0
+    patternMatrix[('Mstream_Zombie','Stream_DoS')] = 100
     return
 
-def IpFreqIntervalIn(Ip, time, IpFT):
-    f, _ = IpFT[Ip].split('-')
-    f = int(f) + 1
-    IpFT[Ip] = str(f) + '-' + str(time)
+def petriNetFilter(petriNetPlace, resultList):
+    l = len(resultList)
+    popId = []
+    for i in range(l):
+        r = resultList[i]
+        tran = r[1] +  '-' + str(r[0])
+        if petriNetPlace[tran] != 0:
+            popId.append(i)
+    for id in popId:
+        resultList.pop(id)
     return
 
-def IpFreqIntervalOut(Ip, time, IpFT):
-    f, _ = IpFT[Ip].split('-')
-    f = int(f) - 1
-    if f == 0:
-        IpFT[Ip] = ''
-    return
+def IpFreqIntervalIn(Ip, IpFT):
+    IpFT[Ip] = IpFT[Ip] + 1
+    return IpFT[Ip]
+
+def IpFreqIntervalOut(Ip, IpFT):
+    IpFT[Ip] = IpFT[Ip] - 1
+    return IpFT[Ip]
 
 def produceToken(petriNetPlace, transition):
     petriNetPlace[transition] = petriNetPlace[transition] + 1
@@ -29,14 +91,14 @@ def consumeToken(petriNetPlace, transition):
     return
 
 def IpFreqIntervalSim(IpInterval, decayPeriod, IpFreq):
-    e = 2.7183
+    e = 2
     IpInterval = int(IpInterval)
     IpFreqSim = 1 - e**(-int(IpFreq))
     IpIntervalSim = e**(-int(IpInterval/decayPeriod))
     return max(IpFreqSim, IpIntervalSim)
 
 def patternFreqSim(patternFreq):
-    e = 2.7183
+    e = 2
     patternFreqSim = 1 - e ** (-int(patternFreq))
     return patternFreqSim
 
