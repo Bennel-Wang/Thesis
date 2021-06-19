@@ -1,9 +1,9 @@
 from datastructure import windowTime
 from datastructure import decayPeriod
-from datastructure import alpha
+from datastructure import endList
 
 def fitCalculation(petriNetPlace):
-    d = 0
+    d = 0.00001
     n = 0
     for p in petriNetPlace:
         if petriNetPlace[p] != 0:
@@ -11,7 +11,7 @@ def fitCalculation(petriNetPlace):
         d += 1
     return n/d
 
-def simCal(srcIpRec, desIpRec, srcIpCur, desIpCur, IpFT, timeRec, timeCur, patternProb):
+def simCal(srcIpRec, desIpRec, srcIpCur, desIpCur, IpFT, timeRec, timeCur, patternProb, knowledgeSim):
     SSDD = IpSimilarityCalculation(srcIpRec, srcIpCur, desIpRec, desIpCur)
     SDSD = IpSimilarityCalculation(srcIpRec, desIpCur, srcIpCur, desIpRec)
     ipSim = max(SSDD, SDSD)
@@ -20,7 +20,11 @@ def simCal(srcIpRec, desIpRec, srcIpCur, desIpCur, IpFT, timeRec, timeCur, patte
     maxIpFreq = max(srcIpFreq, desIpFreq)
     IpInterval = float(timeCur) - float(timeRec)
     IpFTSim = IpFreqIntervalSim(IpInterval, decayPeriod, maxIpFreq)
-    sim = alpha * ipSim + ((1-alpha)/2) * IpFTSim + ((1-alpha)/2) * patternProb
+    #sim = alpha * ipSim + ((1-alpha)/2) * IpFTSim + ((1-alpha)/2) * patternProb
+    #sim = alpha * ipSim + (1 - alpha) * patternProb
+    coeff = max(IpFTSim, patternProb)
+    sim = coeff * (ipSim + knowledgeSim)
+    #sim = IpFTSim * ipSim
     return sim
 
 def fromAlertsrcProb(alertSrc, alertDes, alertList, patternMatrix):
@@ -30,7 +34,7 @@ def fromAlertsrcProb(alertSrc, alertDes, alertList, patternMatrix):
     if totalFreq !=0:
         return patternMatrix[(alertSrc,alertDes)]/totalFreq
     else:
-        return 0.5
+        return 0
 
 def windowUpdate(windowList, alertInfo, IpFT):
     time = alertInfo[0]
@@ -56,20 +60,22 @@ def patternMatrixInit(alertList, patternMatrix):
     for a1 in alertList:
         for a2 in alertList:
             patternMatrix[(a1, a2)] = 0
-    patternMatrix[('Mstream_Zombie','Stream_DoS')] = 100
+    #patternMatrix[('Mstream_Zombie','Stream_DoS')] = 100
     return
 
 def petriNetFilter(petriNetPlace, resultList):
     l = len(resultList)
-    popId = []
+    templist = []
     for i in range(l):
         r = resultList[i]
-        tran = r[1] +  '-' + str(r[0])
-        if petriNetPlace[tran] != 0:
-            popId.append(i)
-    for id in popId:
-        resultList.pop(id)
-    return
+        tran = r[1] + '-' + str(r[0])
+        if petriNetPlace[tran] == 0:
+            templist.append(resultList[i])
+        elif r[1] in endList:
+            templist.append(resultList[i])
+        else:
+            print(r)
+    return templist
 
 def IpFreqIntervalIn(Ip, IpFT):
     IpFT[Ip] = IpFT[Ip] + 1
@@ -80,26 +86,27 @@ def IpFreqIntervalOut(Ip, IpFT):
     return IpFT[Ip]
 
 def produceToken(petriNetPlace, transition):
-    petriNetPlace[transition] = petriNetPlace[transition] + 1
+    petriNetPlace[transition] = 1
     return
 
 def consumeToken(petriNetPlace, transition):
-    if petriNetPlace[transition] > 0:
-        petriNetPlace[transition] = petriNetPlace[transition] - 1
-    else:
-        petriNetPlace[transition] = 0
+    #if petriNetPlace[transition] > 0:
+    #    petriNetPlace[transition] = petriNetPlace[transition] - 1
+    #else:
+    petriNetPlace[transition] = 0
     return
 
 def IpFreqIntervalSim(IpInterval, decayPeriod, IpFreq):
-    e = 2
+    ef = 1.05
+    et = 1.05
     IpInterval = int(IpInterval)
-    IpFreqSim = 1 - e**(-int(IpFreq))
-    IpIntervalSim = e**(-int(IpInterval/decayPeriod))
+    IpFreqSim = 1 - ef**(-int(IpFreq))
+    IpIntervalSim = et**(-int(IpInterval/decayPeriod))
     return max(IpFreqSim, IpIntervalSim)
 
 def patternFreqSim(patternFreq):
-    e = 2
-    patternFreqSim = 1 - e ** (-int(patternFreq))
+    ef = 1.05
+    patternFreqSim = 1 - ef ** (-int(patternFreq))
     return patternFreqSim
 
 
@@ -139,3 +146,11 @@ def timeConversion(Time):
     [h,m,s] = Time.split(':')
     t = 60*(float(m) + 60*float(h)) + float(s)
     return t
+
+def timeConversionBack(t):
+    t = int(t)
+    h = t//(60*60)
+    m = (t - 3600*h) // 60
+    s = t - 3600*h - 60*m
+    time = str(h) + ':' + str(m) + ':' + str(s)
+    return time

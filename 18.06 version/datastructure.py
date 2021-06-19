@@ -1,12 +1,15 @@
 import collections
 
+fileNumber = 2
 windowTime = 40*60     #the minumum interval between steps
-decayPeriod = windowTime/1000
-alpha = 0.6
+aggregationWin = 60
+decayPeriod = 1
+alpha = 0.8
 simT = 0.9
 fT = 1
 resultList = []
 windowList = []
+endList = ['Stream_DoS']
 
 alertList = ['Sadmind_Ping', 'TelnetTerminaltype', 'Email_Almail_Overflow', 'Email_Ehlo', 'FTP_User', 'FTP_Pass',
             'FTP_Syst', 'HTTP_Java', 'HTTP_Shells', 'Admind', 'Sadmind_Amslverify_Overflow', 'Rsh', 'Mstream_Zombie',
@@ -16,3 +19,22 @@ recordList = collections.defaultdict(list)      #recordList[i] =[[prerequisite-T
 IpFT = collections.defaultdict(int)             #IpFT[Ip] = [freq-lastTime...]
 patternMatrix = collections.defaultdict(int)    #patternMatrix[(pattern1, pattern2)] = freq
 petriNetPlace = collections.defaultdict(int)    #petriNetPlace[alert-time] = tokenNum
+knowledgeMatrix = collections.defaultdict(float)
+#knowledge-based decorrelation
+knowledgeMatrix[('Email_Ehlo','Email_Ehlo')] = -1
+knowledgeMatrix[('Email_Ehlo','Email_Almail_Overflow')] = -1
+knowledgeMatrix[('Email_Almail_Overflow','Email_Almail_Overflow')] = -1
+knowledgeMatrix[('Email_Almail_Overflow','Email_Ehlo')] = -1
+knowledgeMatrix[('TelnetTerminaltype','Email_Almail_Overflow')] = -1
+knowledgeMatrix[('TelnetTerminaltype','Email_Ehlo')] = -1
+knowledgeMatrix[('Email_Almail_Overflow', 'TelnetTerminaltype')] = -1
+knowledgeMatrix[('Email_Ehlo', 'TelnetTerminaltype')] = -1
+knowledgeMatrix[('Email_Ehlo', 'Email_Turn')] = -1
+knowledgeMatrix[('FTP_User', 'Email_Ehlo')] = -1
+knowledgeMatrix[('FTP_Pass', 'Email_Ehlo')] = -1
+knowledgeMatrix[('FTP_Syst', 'Email_Ehlo')] = -1
+#knowledge - based precorrelation
+knowledgeMatrix[('Mstream_Zombie','Stream_DoS')] = 0.9
+knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Pass')] = 0.5
+knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Put')] = 0.5
+knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_User')] = 0.5
