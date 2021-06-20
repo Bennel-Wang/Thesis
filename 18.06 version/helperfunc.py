@@ -73,17 +73,18 @@ def petriNetFilter(petriNetPlace, resultList):
             templist.append(resultList[i])
         elif r[1] in endList:
             templist.append(resultList[i])
+            break
         else:
             print(r)
     return templist
 
 def IpFreqIntervalIn(Ip, IpFT):
-    IpFT[Ip] = IpFT[Ip] + 1
+    IpFT[Ip] = IpFT[Ip] + 1#ipSimilarity(binConversion(ip), binConversion(Ip))
     return IpFT[Ip]
 
 def IpFreqIntervalOut(Ip, IpFT):
-    IpFT[Ip] = IpFT[Ip] - 1
-    return IpFT[Ip]
+    IpFT[Ip] = IpFT[Ip] - 1#ipSimilarity(binConversion(ip), binConversion(Ip))
+    return
 
 def produceToken(petriNetPlace, transition):
     petriNetPlace[transition] = 1
@@ -111,30 +112,31 @@ def patternFreqSim(patternFreq):
 
 
 def IpSimilarityCalculation(Ip11, Ip21, Ip12, Ip22):        #last source, current source, last destination, current destination
-    sameNum1 = 0
-    sameNum2 = 0
-    [firstBit11, secondBit11, ThirdBit11, FourthBit11] = Ip11.split('.')
-    IpBin11= bin(int(firstBit11))[2:].zfill(8)+ bin(int(secondBit11))[2:].zfill(8)+bin(int(ThirdBit11))[2:].zfill(8)+ bin(int(FourthBit11))[2:].zfill(8)
-    [firstBit12, secondBit12, ThirdBit12, FourthBit12] = Ip12.split('.')
-    IpBin12 = bin(int(firstBit12))[2:].zfill(8) + bin(int(secondBit12))[2:].zfill(8) + bin(int(ThirdBit12))[2:].zfill(8) + bin(int(FourthBit12))[2:].zfill(8)
-    [firstBit21, secondBit21, ThirdBit21, FourthBit21] = Ip21.split('.')
-    IpBin21 = bin(int(firstBit21))[2:].zfill(8) + bin(int(secondBit21))[2:].zfill(8) + bin(int(ThirdBit21))[2:].zfill(8) + bin(int(FourthBit21))[2:].zfill(8)
-    [firstBit22, secondBit22, ThirdBit22, FourthBit22] = Ip22.split('.')
-    IpBin22 = bin(int(firstBit22))[2:].zfill(8) + bin(int(secondBit22))[2:].zfill(8) + bin(int(ThirdBit22))[2:].zfill(8) + bin(int(FourthBit22))[2:].zfill(8)
-    for i in range(32):
-        if IpBin11[i] == IpBin21[i]:
-            sameNum1 = sameNum1 + 1
-        else:
-            break
-    for j in range(32):
-        if IpBin12[j] == IpBin22[j]:
-            sameNum2 = sameNum2 + 1
-        else:
-            break
+    IpBin11 = binConversion(Ip11)
+    IpBin12 = binConversion(Ip12)
+    IpBin21 = binConversion(Ip21)
+    IpBin22 = binConversion(Ip22)
+    sameNum1 = ipSimilarity(IpBin11, IpBin21)
+    sameNum2 = ipSimilarity(IpBin12, IpBin22)
     if max(sameNum1,sameNum2) == 32:
         return 1
     else:
         return max(sameNum1,sameNum2)/32
+
+def binConversion(Ip):
+    [firstBit11, secondBit11, ThirdBit11, FourthBit11] = Ip.split('.')
+    IpBin= bin(int(firstBit11))[2:].zfill(8)+ bin(int(secondBit11))[2:].zfill(8)+bin(int(ThirdBit11))[2:].zfill(8)+ bin(int(FourthBit11))[2:].zfill(8)
+    return IpBin
+
+def ipSimilarity(Ip1, Ip2):
+    sameNum = 0
+    #print(Ip2)
+    for i in range(32):
+        if Ip1[i] == Ip2[i]:
+            sameNum = sameNum + 1
+        else:
+            break
+    return sameNum
 
 def validTimeGap(timeFormer, timeLatter, validGap):
     if float(timeLatter) - float(timeFormer) > validGap:

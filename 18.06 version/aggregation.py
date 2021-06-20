@@ -27,7 +27,7 @@ def alertAggregation():
 
         name = ['Time(after conversion)', 'Alert', 'SrcIp', 'DesIp','Prerequisite']
         data = pd.DataFrame(columns=name, data=result)
-        data.to_csv('/home/jin/Documents/Generated Data/1806_record_hyper' + str(fileNumber) + '.csv', index = None)
+        data.to_csv('/home/jin/Documents/Generated Data/1806_record_hyper' + str(fileNumber) + '.csv', index = False)
             # break
 
 
