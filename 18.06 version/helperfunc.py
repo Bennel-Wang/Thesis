@@ -41,8 +41,8 @@ def windowUpdate(windowList, alertInfo, IpFT):
     srcip = alertInfo[2]
     desip = alertInfo[3]
     windowList.append(alertInfo)
-    IpFreqIntervalIn(srcip, IpFT)
-    IpFreqIntervalIn(desip, IpFT)
+    #IpFreqIntervalIn(srcip, IpFT)
+    #IpFreqIntervalIn(desip, IpFT)
     while len(windowList) > 0:
         oldestInfo = windowList[0]
         oldest_time = oldestInfo[0]
@@ -50,8 +50,8 @@ def windowUpdate(windowList, alertInfo, IpFT):
         oldest_desip = oldestInfo[3]
         if not validTimeGap(oldest_time, time, windowTime):
             windowList.pop(0)
-            IpFreqIntervalOut(oldest_srcip, IpFT)
-            IpFreqIntervalOut(oldest_desip, IpFT)
+            #IpFreqIntervalOut(oldest_srcip, IpFT)
+            #IpFreqIntervalOut(oldest_desip, IpFT)
         else:
             break
     return
@@ -98,12 +98,15 @@ def consumeToken(petriNetPlace, transition):
     return
 
 def IpFreqIntervalSim(IpInterval, decayPeriod, IpFreq):
-    ef = 1.05
-    et = 1.05
-    IpInterval = int(IpInterval)
-    IpFreqSim = 1 - ef**(-int(IpFreq))
-    IpIntervalSim = et**(-int(IpInterval/decayPeriod))
-    return max(IpFreqSim, IpIntervalSim)
+    return min(1, (IpFreq*decayPeriod + decayPeriod)/(IpInterval+0.0001))
+    #return (min(IpFreq,20*60)*decayPeriod+decayPeriod)/(min(IpInterval,20*60)+0.0001)
+    #ef = 1.1
+    #et = 1.1
+    #IpFreq = min(IpFreq, 5)
+    #IpInterval = int(IpInterval)
+    #IpFreqSim = ef**(IpFreq)
+    #IpIntervalSim = et**(-int(IpInterval/decayPeriod))
+    #return IpFreqSim*IpIntervalSim
 
 def patternFreqSim(patternFreq):
     ef = 1.05

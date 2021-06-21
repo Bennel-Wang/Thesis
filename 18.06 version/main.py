@@ -7,10 +7,10 @@ from visualization import labelVisualization
 from aggregation import labelAlertAggregation
 
 def main():
-    timeZoneSwitch()
-    originVisualization()
-    labelVisualization()
-    labelAlertAggregation()
+    #timeZoneSwitch()
+    #originVisualization()
+    #labelVisualization()
+    #labelAlertAggregation()
     tokenReplay()
     alertAggregation()
     resultVisualization()

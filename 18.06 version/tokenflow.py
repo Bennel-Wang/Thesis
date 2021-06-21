@@ -8,6 +8,7 @@ from helperfunc import produceToken
 from helperfunc import fitCalculation
 from helperfunc import petriNetFilter
 from helperfunc import timeConversionBack
+from helperfunc import IpFreqIntervalIn
 from helperfunc import IpSimilarityCalculation
 from helperfunc import patternFreqSim
 from datastructure import resultList
@@ -20,6 +21,7 @@ from datastructure import fT
 from datastructure import fileNumber
 from datastructure import petriNetPlace
 from datastructure import knowledgeMatrix
+from datastructure import uncorrelateList
 import csv
 import pandas as pd
 import numpy as np
@@ -37,6 +39,8 @@ def tokenReplay():
                 continue
             else:
                 l = {'Time': timeConversion(l[0]),'SrcPort':l[1],'SrcIp':l[2],'DesPort':l[3],'DesIp':l[4],'AlertType':l[5]}
+                if l['AlertType'] in uncorrelateList:
+                    continue
                 preqList = []
                 app = False
                 windowUpdate(windowList, [l['Time'], l['AlertType'], l['SrcIp'], l['DesIp']],IpFT)
@@ -62,6 +66,8 @@ def tokenReplay():
                         else:
                             resultList.append([aiTime, aiType, aiSrcIp, aiDesIp, ['Start']])
                 if app:
+                    IpFreqIntervalIn(l['SrcIp'], IpFT)
+                    IpFreqIntervalIn(l['DesIp'], IpFT)
                     resultList.append([l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'], preqList])
                     produceToken(petriNetPlace, aiType + '-' + timeConversionBack(aiTime))
                 #patternMatrix[(lastAlert, l['AlertType'])] = patternMatrix[(lastAlert, l['AlertType'])] + 1

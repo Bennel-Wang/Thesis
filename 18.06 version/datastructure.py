@@ -1,15 +1,16 @@
 import collections
 
-fileNumber = 1
+fileNumber = 2
 windowTime = 40*60     #the minumum interval between steps
 aggregationWin = 20*60
-decayPeriod = 1
+decayPeriod = 5
 alpha = 0.8
-simT = 0.9
+simT = 0.85
 fT = 1
 resultList = []
 windowList = []
 endList = ['Stream_DoS']
+uncorrelateList = ['Email_Ehlo','Email_Almail_Overflow','Email_Turn','Email_Debug']
 
 alertList = ['Sadmind_Ping', 'TelnetTerminaltype', 'Email_Almail_Overflow', 'Email_Ehlo', 'FTP_User', 'FTP_Pass',
             'FTP_Syst', 'HTTP_Java', 'HTTP_Shells', 'Admind', 'Sadmind_Amslverify_Overflow', 'Rsh', 'Mstream_Zombie',
@@ -42,6 +43,6 @@ knowledgeMatrix[('FTP_Syst', 'Email_Ehlo')] = -1
 #knowledge - based precorrelation
 knowledgeMatrix[('Mstream_Zombie','Stream_DoS')] = 0.9
 knowledgeMatrix[('Mstream_Zombie','Port_Scan')] = 0.9
-knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Pass')] = 0.3
-knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Put')] = 0.3
-knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_User')] = 0.3
+#knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Pass')] = 0.3
+#knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Put')] = 0.3
+#knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_User')] = 0.3
