@@ -1,8 +1,8 @@
 import collections
 
-fileNumber = 2
+fileNumber = 1
 windowTime = 40*60     #the minumum interval between steps
-aggregationWin = 60
+aggregationWin = 20*60
 decayPeriod = 1
 alpha = 0.8
 simT = 0.9
@@ -34,6 +34,7 @@ knowledgeMatrix[('Email_Ehlo', 'Email_Debug')] = -1
 knowledgeMatrix[('Email_Ehlo', 'FTP_User')] = -1
 knowledgeMatrix[('Email_Ehlo', 'Rsh')] = -1
 knowledgeMatrix[('Email_Debug', 'Email_Ehlo')] = -1
+knowledgeMatrix[('Start','Email_Debug')] = -1
 knowledgeMatrix[('Email_Almail_Overflow', 'Rsh')] = -1
 knowledgeMatrix[('FTP_User', 'Email_Ehlo')] = -1
 knowledgeMatrix[('FTP_Pass', 'Email_Ehlo')] = -1

@@ -56,6 +56,11 @@ def tokenReplay():
                         preqList.append(aiType + '-' + timeConversionBack(aiTime))
                         app = True
                         consumeToken(petriNetPlace, aiType + '-' + timeConversionBack(aiTime))
+                        for r in resultList:
+                            if (aiTime== r[0] and aiType == r[1]):
+                               break
+                        else:
+                            resultList.append([aiTime, aiType, aiSrcIp, aiDesIp, ['Start']])
                 if app:
                     resultList.append([l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'], preqList])
                     produceToken(petriNetPlace, aiType + '-' + timeConversionBack(aiTime))

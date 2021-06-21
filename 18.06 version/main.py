@@ -4,11 +4,13 @@ from timezoneswitch import timeZoneSwitch
 from visualization import resultVisualization
 from visualization import originVisualization
 from visualization import labelVisualization
+from aggregation import labelAlertAggregation
 
 def main():
-    #timeZoneSwitch()
-    #originVisualization()
-    #labelVisualization()
+    timeZoneSwitch()
+    originVisualization()
+    labelVisualization()
+    labelAlertAggregation()
     tokenReplay()
     alertAggregation()
     resultVisualization()

@@ -24,7 +24,7 @@ def resultVisualization():
                     linkFreq[cA + '-' + l['currAlert']] = linkFreq[cA + '-' + l['currAlert']] + 1
                     if cA != '[' and cA!=']' and cA != ', ':
                         cA = cA.split('-')[0]
-                        if linkFreq[cA +'-'+ l['currAlert']]>=0 and ((cA +'-'+ l['currAlert']) not in edgeList) and cA != l['currAlert']:
+                        if linkFreq[cA +'-'+ l['currAlert']]>=0 and ((cA +'-'+ l['currAlert']) not in edgeList) and cA != l['currAlert'] and cA != 'Start':
                             print(cA, l['currAlert'])
                             dot.edge(cA, l['currAlert'])
                             edgeNum = edgeNum + 1
