@@ -41,8 +41,8 @@ def windowUpdate(windowList, alertInfo, IpFT):
     srcip = alertInfo[2]
     desip = alertInfo[3]
     windowList.append(alertInfo)
-    #IpFreqIntervalIn(srcip, IpFT)
-    #IpFreqIntervalIn(desip, IpFT)
+    IpFreqIntervalIn(srcip, IpFT)
+    IpFreqIntervalIn(desip, IpFT)
     while len(windowList) > 0:
         oldestInfo = windowList[0]
         oldest_time = oldestInfo[0]
@@ -50,8 +50,8 @@ def windowUpdate(windowList, alertInfo, IpFT):
         oldest_desip = oldestInfo[3]
         if not validTimeGap(oldest_time, time, windowTime):
             windowList.pop(0)
-            #IpFreqIntervalOut(oldest_srcip, IpFT)
-            #IpFreqIntervalOut(oldest_desip, IpFT)
+            IpFreqIntervalOut(oldest_srcip, IpFT)
+            IpFreqIntervalOut(oldest_desip, IpFT)
         else:
             break
     return

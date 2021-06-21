@@ -66,8 +66,8 @@ def tokenReplay():
                         else:
                             resultList.append([aiTime, aiType, aiSrcIp, aiDesIp, ['Start']])
                 if app:
-                    IpFreqIntervalIn(l['SrcIp'], IpFT)
-                    IpFreqIntervalIn(l['DesIp'], IpFT)
+                    #IpFreqIntervalIn(l['SrcIp'], IpFT)
+                    #IpFreqIntervalIn(l['DesIp'], IpFT)
                     resultList.append([l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'], preqList])
                     produceToken(petriNetPlace, aiType + '-' + timeConversionBack(aiTime))
                 #patternMatrix[(lastAlert, l['AlertType'])] = patternMatrix[(lastAlert, l['AlertType'])] + 1

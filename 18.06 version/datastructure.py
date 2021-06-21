@@ -1,11 +1,11 @@
 import collections
 
-fileNumber = 2
+fileNumber = 1
 windowTime = 40*60     #the minumum interval between steps
 aggregationWin = 20*60
 decayPeriod = 5
 alpha = 0.8
-simT = 0.85
+simT = 0.9
 fT = 1
 resultList = []
 windowList = []
