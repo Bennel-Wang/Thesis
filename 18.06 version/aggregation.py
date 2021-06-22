@@ -15,17 +15,17 @@ def alertAggregation():
                 result = []
                 continue
             else:
-                print(l)
-                l = {'Time': timeConversion(l[0]), 'Alert': l[1], 'SrcIp': l[2], 'DesIp': l[3],'Prerequisite': l[4]}
+                #print(l)
+                l = {'Time': timeConversion(l[0]), 'Alert': l[1], 'SrcIp': l[2], 'DesIp': l[3],'Num':l[4],'Prerequisite': l[5]}
                 for i in range(0,len(result)):
                     if(validTimeGap(timeConversion(result[i][0]),l['Time'], aggregationWin) and l['Alert'] == result[i][1] and l['SrcIp'] == result[i][2] and l['DesIp'] == result[i][3]):
+                        result.append([timeConversionBack(l['Time']), l['Alert'], l['SrcIp'], l['DesIp'], l['Num'],l['Prerequisite']+result[i][5]])
                         result.pop(i)
-                        result.append([timeConversionBack(l['Time']), l['Alert'], l['SrcIp'], l['DesIp'], l['Prerequisite']])
                         break
                 else:   #all with not satisfy
-                    result.append([timeConversionBack(l['Time']), l['Alert'], l['SrcIp'], l['DesIp'], l['Prerequisite']])
+                    result.append([timeConversionBack(l['Time']), l['Alert'], l['SrcIp'], l['DesIp'], l['Num'], l['Prerequisite']])
 
-        name = ['Time(after conversion)', 'Alert', 'SrcIp', 'DesIp','Prerequisite']
+        name = ['Time(after conversion)', 'Alert', 'SrcIp', 'DesIp','Sequence Num','Prerequisite']
         data = pd.DataFrame(columns=name, data=result)
         data.to_csv('/home/jin/Documents/Generated Data/1806_record_hyper' + str(fileNumber) + '.csv', index = False)
             # break
@@ -41,7 +41,7 @@ def labelAlertAggregation():
                 result = []
                 continue
             else:
-                print(l)
+                #print(l)
                 l = {'Time': timeConversion(l[0]), 'Alert': l[5], 'SrcIp': l[2], 'DesIp': l[4]}
                 for i in range(0,len(result)):
                     if(validTimeGap(timeConversion(result[i][0]),l['Time'], aggregationWin) and l['Alert'] == result[i][1] and l['SrcIp'] == result[i][2] and l['DesIp'] == result[i][3]):

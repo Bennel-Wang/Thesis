@@ -1,11 +1,10 @@
 import collections
 
-fileNumber = 1
+fileNumber = 2
 windowTime = 40*60     #the minumum interval between steps
 aggregationWin = 20*60
 decayPeriod = 5
-alpha = 0.8
-simT = 0.9
+simT = 1    #29/32,mask
 fT = 1
 resultList = []
 windowList = []
@@ -22,27 +21,19 @@ patternMatrix = collections.defaultdict(int)    #patternMatrix[(pattern1, patter
 petriNetPlace = collections.defaultdict(int)    #petriNetPlace[alert-time] = tokenNum
 knowledgeMatrix = collections.defaultdict(float)
 #knowledge-based decorrelation
-knowledgeMatrix[('Email_Ehlo','Email_Ehlo')] = -1
-knowledgeMatrix[('Email_Ehlo','Email_Almail_Overflow')] = -1
-knowledgeMatrix[('Email_Almail_Overflow','Email_Almail_Overflow')] = -1
-knowledgeMatrix[('Email_Almail_Overflow','Email_Ehlo')] = -1
-knowledgeMatrix[('TelnetTerminaltype','Email_Almail_Overflow')] = -1
-knowledgeMatrix[('TelnetTerminaltype','Email_Ehlo')] = -1
-knowledgeMatrix[('Email_Almail_Overflow', 'TelnetTerminaltype')] = -1
-knowledgeMatrix[('Email_Ehlo', 'TelnetTerminaltype')] = -1
-knowledgeMatrix[('Email_Ehlo', 'Email_Turn')] = -1
-knowledgeMatrix[('Email_Ehlo', 'Email_Debug')] = -1
-knowledgeMatrix[('Email_Ehlo', 'FTP_User')] = -1
-knowledgeMatrix[('Email_Ehlo', 'Rsh')] = -1
-knowledgeMatrix[('Email_Debug', 'Email_Ehlo')] = -1
-knowledgeMatrix[('Start','Email_Debug')] = -1
-knowledgeMatrix[('Email_Almail_Overflow', 'Rsh')] = -1
-knowledgeMatrix[('FTP_User', 'Email_Ehlo')] = -1
-knowledgeMatrix[('FTP_Pass', 'Email_Ehlo')] = -1
-knowledgeMatrix[('FTP_Syst', 'Email_Ehlo')] = -1
+def deinitialization():
+    for a in alertList:
+        knowledgeMatrix[('Email_Ehlo',a)] = -100
+        knowledgeMatrix[('Email_Debug', a)] = -100
+        knowledgeMatrix[('Email_Turn', a)] = -100
+        knowledgeMatrix[('Email_Almail_Overflow',a)] = -100
+        knowledgeMatrix[(a,'Email_Ehlo')] = -100
+        knowledgeMatrix[(a, 'Email_Turn')] = -100
+        knowledgeMatrix[(a, 'Email_Debug')] = -100
+        knowledgeMatrix[(a, 'Email_Almail_Overflow')] = -100
+    return
+
 #knowledge - based precorrelation
-knowledgeMatrix[('Mstream_Zombie','Stream_DoS')] = 0.9
-knowledgeMatrix[('Mstream_Zombie','Port_Scan')] = 0.9
-#knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Pass')] = 0.3
-#knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Put')] = 0.3
-#knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_User')] = 0.3
+knowledgeMatrix[('Mstream_Zombie','Stream_DoS')] = 1
+#knowledgeMatrix[('Sadmind_Amslverify_Overflow','Rsh')] = 1
+#knowledgeMatrix[('Mstream_Zombie','Port_Scan')] = 1

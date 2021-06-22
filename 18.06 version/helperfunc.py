@@ -11,20 +11,17 @@ def fitCalculation(petriNetPlace):
         d += 1
     return n/d
 
-def simCal(srcIpRec, desIpRec, srcIpCur, desIpCur, IpFT, timeRec, timeCur, patternProb, knowledgeSim):
+def simCal(srcIpRec, desIpRec, srcIpCur, desIpCur, IpF, timeRec, timeCur, patternProb, knowledgeSim):
     SSDD = IpSimilarityCalculation(srcIpRec, srcIpCur, desIpRec, desIpCur)
     SDSD = IpSimilarityCalculation(srcIpRec, desIpCur, srcIpCur, desIpRec)
     ipSim = max(SSDD, SDSD)
-    srcIpFreq = IpFT[srcIpCur]
-    desIpFreq = IpFT[desIpCur]
+    srcIpFreq = IpF[srcIpCur]
+    desIpFreq = IpF[desIpCur]
     maxIpFreq = max(srcIpFreq, desIpFreq)
-    IpInterval = float(timeCur) - float(timeRec)
+    IpInterval = timeCur - timeRec
     IpFTSim = IpFreqIntervalSim(IpInterval, decayPeriod, maxIpFreq)
-    #sim = alpha * ipSim + ((1-alpha)/2) * IpFTSim + ((1-alpha)/2) * patternProb
-    #sim = alpha * ipSim + (1 - alpha) * patternProb
-    coeff = max(IpFTSim, patternProb)
-    sim = coeff * (ipSim + knowledgeSim)
-    #sim = IpFTSim * ipSim
+    patternProb = round(patternProb,0)
+    sim = IpFTSim * (ipSim + knowledgeSim + 0.125*patternProb)
     return sim
 
 def fromAlertsrcProb(alertSrc, alertDes, alertList, patternMatrix):
@@ -68,14 +65,14 @@ def petriNetFilter(petriNetPlace, resultList):
     templist = []
     for i in range(l):
         r = resultList[i]
-        tran = r[1] + '-' + str(r[0])
+        tran = r[1] + '-' + str(r[2]) + '-' + str(r[3])
         if petriNetPlace[tran] == 0:
             templist.append(resultList[i])
         elif r[1] in endList:
             templist.append(resultList[i])
             break
         else:
-            print(r)
+            print('filter', r)
     return templist
 
 def IpFreqIntervalIn(Ip, IpFT):
@@ -91,22 +88,15 @@ def produceToken(petriNetPlace, transition):
     return
 
 def consumeToken(petriNetPlace, transition):
-    #if petriNetPlace[transition] > 0:
-    #    petriNetPlace[transition] = petriNetPlace[transition] - 1
-    #else:
     petriNetPlace[transition] = 0
     return
 
 def IpFreqIntervalSim(IpInterval, decayPeriod, IpFreq):
-    return min(1, (IpFreq*decayPeriod + decayPeriod)/(IpInterval+0.0001))
-    #return (min(IpFreq,20*60)*decayPeriod+decayPeriod)/(min(IpInterval,20*60)+0.0001)
-    #ef = 1.1
-    #et = 1.1
-    #IpFreq = min(IpFreq, 5)
-    #IpInterval = int(IpInterval)
-    #IpFreqSim = ef**(IpFreq)
-    #IpIntervalSim = et**(-int(IpInterval/decayPeriod))
-    #return IpFreqSim*IpIntervalSim
+    if IpInterval > decayPeriod:
+        return min(1, IpFreq*decayPeriod/IpInterval)
+    else:
+        return 1
+
 
 def patternFreqSim(patternFreq):
     ef = 1.05
