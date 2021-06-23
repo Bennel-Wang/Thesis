@@ -22,7 +22,7 @@ from datastructure import fileNumber
 from datastructure import petriNetPlace
 from datastructure import knowledgeMatrix
 from datastructure import deinitialization
-from datastructure import uncorrelateList
+from datastructure import endList
 import csv
 import pandas as pd
 import numpy as np
@@ -41,44 +41,44 @@ def tokenReplay():
                 continue
             else:
                 l = {'Time': timeConversion(l[0]),'SrcPort':l[1],'SrcIp':l[2],'DesPort':l[3],'DesIp':l[4],'AlertType':l[5]}
-                #if l['AlertType'] in uncorrelateList:
-                #    continue
                 preqList = []
                 app = False
                 windowUpdate(windowList, [l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'],str(j)],IpFT)
                 correlationList = resultList[0:5] + windowList[0:-1]
-                #correlationList = windowList
                 for ai in correlationList:
                     aiTime = ai[0]
                     aiType = ai[1]
                     aiSrcIp = ai[2]
                     aiDesIp = ai[3]
                     ainum = ai[4]
-                    #patternProb = patternFreqSim(patternMatrix[(aiType, l['AlertType'])])
                     patternProb = fromAlertsrcProb(aiType, l['AlertType'], alertList, patternMatrix)
                     sim = simCal(aiSrcIp, aiDesIp, l['SrcIp'], l['DesIp'], IpFT, aiTime, l['Time'], patternProb, knowledgeMatrix[(aiType, l['AlertType'])])
-                    patternMatrix[(aiType, l['AlertType'])] = patternMatrix[(aiType, l['AlertType'])] + sim
                     if sim >= simT:
+                        patternMatrix[(aiType, l['AlertType'])] = patternMatrix[(aiType, l['AlertType'])] = \
+                        patternMatrix[(aiType, l['AlertType'])] = patternMatrix[(aiType, l['AlertType'])] + 1
                         preqList.append(str(ainum) + '-' + aiType + '-' + timeConversionBack(aiTime))
                         app = True
-                        consumeToken(petriNetPlace, aiType+'-'+aiSrcIp+'-'+aiDesIp)
+                        consumeToken(petriNetPlace, aiType+'-'+str(ainum))
+                        #print('c',aiType+'-'+str(ainum))
 
-                        for r in resultList:
-                            if (aiTime== r[0] and aiType == r[1]):
-                               break
-                        else:
-                            resultList.append([aiTime, aiType, aiSrcIp, aiDesIp, str(ainum),['0-'+'Start'+'-0:0:0']])
+                        #for r in resultList:
+                        #    if (str(ainum) == r[4] and aiType == r[1]):
+                        #       break
+                        #else:
+                        #    resultList.append([aiTime, aiType, aiSrcIp, aiDesIp, str(ainum),['0-'+'Start'+'-0:0:0']])
                 if app:
                     #IpFreqIntervalIn(l['SrcIp'], IpFT)
                     #IpFreqIntervalIn(l['DesIp'], IpFT)
                     resultList.append([l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'], str(j), preqList])
-                    produceToken(petriNetPlace, aiType+'-'+aiSrcIp+'-'+aiDesIp)
-                #patternMatrix[(lastAlert, l['AlertType'])] = patternMatrix[(lastAlert, l['AlertType'])] + 1
-                #lastAlert = l['AlertType']
+                    produceToken(petriNetPlace, l['AlertType']+'-'+str(j))
+                    #print('p',l['AlertType']+'-'+str(j))
+                    patternMatrix[(lastAlert, l['AlertType'])] = patternMatrix[(lastAlert, l['AlertType'])] + 1
+                    lastAlert = l['AlertType']
                 fitCal = fitCalculation(petriNetPlace)
                 if fitCal > fT:
                     break
-
+                if l['AlertType'] in endList:
+                    break
         for j in range(len(resultList)):
             resultList[j][0] = timeConversionBack(resultList[j][0])
 

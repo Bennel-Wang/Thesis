@@ -12,22 +12,30 @@ def fitCalculation(petriNetPlace):
     return n/d
 
 def simCal(srcIpRec, desIpRec, srcIpCur, desIpCur, IpF, timeRec, timeCur, patternProb, knowledgeSim):
-    SSDD = IpSimilarityCalculation(srcIpRec, srcIpCur, desIpRec, desIpCur)
-    SDSD = IpSimilarityCalculation(srcIpRec, desIpCur, srcIpCur, desIpRec)
-    ipSim = max(SSDD, SDSD)
+    srcIpRecBin = binConversion(srcIpRec)
+    desIpRecBin = binConversion(desIpRec)
+    srcIpCurBin = binConversion(srcIpCur)
+    desIpCurBin = binConversion(desIpCur)
+    SS = ipSimilarity (srcIpRecBin, srcIpCurBin)
+    DS = ipSimilarity (desIpRecBin, srcIpCurBin)
+    #SD = ipSimilarity (srcIpRec, desIpCur)
+    #DD = ipSimilarity (desIpRec, desIpCur)
+    #SSDD = IpSimilarityCalculation(srcIpRec, srcIpCur, desIpRec, desIpCur)
+    #SDSD = IpSimilarityCalculation(srcIpRec, desIpCur, srcIpCur, desIpRec)
+    ipSim = max(SS, DS)/32
     srcIpFreq = IpF[srcIpCur]
     desIpFreq = IpF[desIpCur]
     maxIpFreq = max(srcIpFreq, desIpFreq)
     IpInterval = timeCur - timeRec
     IpFTSim = IpFreqIntervalSim(IpInterval, decayPeriod, maxIpFreq)
-    patternProb = round(patternProb,0)
-    sim = IpFTSim * (ipSim + knowledgeSim + 0.125*patternProb)
+    sim = max(IpFTSim +knowledgeSim, 0) * max(ipSim +knowledgeSim,0)
     return sim
 
 def fromAlertsrcProb(alertSrc, alertDes, alertList, patternMatrix):
     totalFreq = 0
     for a in alertList:
-        totalFreq = totalFreq + patternMatrix[(a,alertDes)]
+        if a != alertDes:
+            totalFreq = totalFreq + patternMatrix[(a,alertDes)]
     if totalFreq !=0:
         return patternMatrix[(alertSrc,alertDes)]/totalFreq
     else:
@@ -65,14 +73,14 @@ def petriNetFilter(petriNetPlace, resultList):
     templist = []
     for i in range(l):
         r = resultList[i]
-        tran = r[1] + '-' + str(r[2]) + '-' + str(r[3])
+        tran = r[1] + '-' + str(r[4])
         if petriNetPlace[tran] == 0:
             templist.append(resultList[i])
         elif r[1] in endList:
             templist.append(resultList[i])
-            break
+            #break
         else:
-            print('filter', r)
+            print('filter', tran)
     return templist
 
 def IpFreqIntervalIn(Ip, IpFT):
@@ -93,7 +101,7 @@ def consumeToken(petriNetPlace, transition):
 
 def IpFreqIntervalSim(IpInterval, decayPeriod, IpFreq):
     if IpInterval > decayPeriod:
-        return min(1, IpFreq*decayPeriod/IpInterval)
+        return min(1, IpFreq*decayPeriod/min(IpInterval,3*60))
     else:
         return 1
 
