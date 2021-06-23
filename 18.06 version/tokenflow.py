@@ -61,11 +61,11 @@ def tokenReplay():
                         consumeToken(petriNetPlace, aiType+'-'+str(ainum))
                         #print('c',aiType+'-'+str(ainum))
 
-                        #for r in resultList:
-                        #    if (str(ainum) == r[4] and aiType == r[1]):
-                        #       break
-                        #else:
-                        #    resultList.append([aiTime, aiType, aiSrcIp, aiDesIp, str(ainum),['0-'+'Start'+'-0:0:0']])
+                        for r in resultList:
+                            if (str(ainum) == r[4] and aiType == r[1]):
+                               break
+                        else:
+                            resultList.append([aiTime, aiType, aiSrcIp, aiDesIp, str(ainum),['0-'+'Start'+'-0:0:0']])
                 if app:
                     #IpFreqIntervalIn(l['SrcIp'], IpFT)
                     #IpFreqIntervalIn(l['DesIp'], IpFT)

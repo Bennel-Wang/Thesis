@@ -1,6 +1,7 @@
 from datastructure import windowTime
 from datastructure import decayPeriod
 from datastructure import endList
+from datastructure import windowTime
 
 def fitCalculation(petriNetPlace):
     d = 0.00001
@@ -101,11 +102,16 @@ def consumeToken(petriNetPlace, transition):
     return
 
 def IpFreqIntervalSim(IpInterval, decayPeriod, IpFreq):
-    if IpInterval > decayPeriod:
+    #if IpInterval > decayPeriod:
         #return min(1, IpFreq*decayPeriod/min(IpInterval,180))
-        return IpFreq*decayPeriod/IpInterval
+    #IpFreq = max(IpFreq,10)
+    #IpInterval = min(IpInterval,100*decayPeriod)
+    if IpInterval != 0:
+        return min(IpFreq*decayPeriod/IpInterval,8)
     else:
         return 1
+    #else:
+    #    return 1
 
 
 def patternFreqSim(patternFreq):

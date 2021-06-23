@@ -2,7 +2,7 @@ import collections
 
 fileNumber = 2
 windowTime = 40*60     #the minumum interval between steps
-aggregationWin = 20*60
+aggregationWin = windowTime/2
 decayPeriod = 5
 simT = 1   #29/32,mask
 fT = 1
@@ -23,7 +23,6 @@ knowledgeMatrix = collections.defaultdict(float)
 #knowledge-based decorrelation
 def deinitialization():
     for a in alertList:
-        #knowledgeMatrix[(a, a)] = -100
         knowledgeMatrix[('Email_Ehlo',a)] = -100
         knowledgeMatrix[('Email_Debug', a)] = -100
         knowledgeMatrix[('Email_Turn', a)] = -100
@@ -36,6 +35,10 @@ def deinitialization():
 
 #knowledge - based precorrelation
 knowledgeMatrix[('Mstream_Zombie','Stream_DoS')] = 1
+knowledgeMatrix[('Port_Scan','Stream_DoS')] = 1
+knowledgeMatrix[('Stream_DoS','Port_Scan')] = 1
+knowledgeMatrix[('Sadmind_Ping','Sadmind_Ping')] = 1/32
+knowledgeMatrix[('Sadmind_Amslverify_Overflow','Rsh')] = 1/32
 #knowledgeMatrix[('TelnetTerminaltype','TelnetEnvAll')] = 0.2
 #knowledgeMatrix[('TelnetTerminaltype','TelnetXdisplay')] = 0.2
 #knowledgeMatrix[('TelnetTerminaltype','Mstream_Zombie')] = 0.2
@@ -45,7 +48,6 @@ knowledgeMatrix[('Mstream_Zombie','Stream_DoS')] = 1
 #knowledgeMatrix[('TelnetEnvAll','TelnetTerminaltype')] = 0.2
 #knowledgeMatrix[('TelnetEnvAll','TelnetXdisplay')] = 0.2
 #knowledgeMatrix[('TelnetEnvAll','Mstream_Zombie')] = 0.2
-knowledgeMatrix[('Sadmind_Amslverify_Overflow','Rsh')] = 2/32
 #knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Pass')] = 0.2
 #knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_Put')] = 0.2
 #knowledgeMatrix[('Sadmind_Amslverify_Overflow','FTP_User')] = 0.2
