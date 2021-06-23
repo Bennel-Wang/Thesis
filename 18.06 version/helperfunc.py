@@ -28,7 +28,8 @@ def simCal(srcIpRec, desIpRec, srcIpCur, desIpCur, IpF, timeRec, timeCur, patter
     maxIpFreq = max(srcIpFreq, desIpFreq)
     IpInterval = timeCur - timeRec
     IpFTSim = IpFreqIntervalSim(IpInterval, decayPeriod, maxIpFreq)
-    sim = max(IpFTSim +knowledgeSim, 0) * max(ipSim +knowledgeSim,0)
+    #sim = max(IpFTSim +knowledgeSim, 0) * max(ipSim +knowledgeSim,0)
+    sim = (1/32)*(IpFTSim-1) + (ipSim +knowledgeSim)
     return sim
 
 def fromAlertsrcProb(alertSrc, alertDes, alertList, patternMatrix):
@@ -101,7 +102,8 @@ def consumeToken(petriNetPlace, transition):
 
 def IpFreqIntervalSim(IpInterval, decayPeriod, IpFreq):
     if IpInterval > decayPeriod:
-        return min(1, IpFreq*decayPeriod/min(IpInterval,3*60))
+        #return min(1, IpFreq*decayPeriod/min(IpInterval,180))
+        return IpFreq*decayPeriod/IpInterval
     else:
         return 1
 
