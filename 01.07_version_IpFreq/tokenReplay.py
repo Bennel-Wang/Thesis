@@ -33,12 +33,12 @@ def tokenReplay():
                             #print(newCor,alertInfo, str(l['Time']) + '-' + l['AlertType'])
                             #print(patternFreq)
                             if newCor>0.5:
-                                # print(mostCorAlertInfo,str(l['Time']) + '-' +l['AlertType'],cor)
+                                #print(alertInfo,str(l['Time']) + '-' +l['AlertType'],newCor)
                                 petrinet.consumeToken(petrinetPlace, alertInfo, tokenList, newCor)
 
-                            if cor <= newCor:
-                                cor = newCor
-                                mostCorAlertInfo = alertInfo
+                            #if cor <= newCor:
+                                #cor = newCor
+                                #mostCorAlertInfo = alertInfo
                         helperfunc.windowUpdate(windowList, str(l['Time']) + '-' + l['AlertType'], alertFreq,patternFreq)
 
                         petrinet.produceToken(petrinetPlace,str(l['Time']) + '-' + l['AlertType'], tokenList, 1)
