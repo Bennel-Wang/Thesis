@@ -30,14 +30,14 @@ def correlationEstimation(timeInt, prop, base=expBase):
     return 0.5*timeCor + 0.5*prop        #when a step begin, cor is small, as time goes by, it becomes larger, its fluctuation and duration is useful
 
 def windowUpdate(windowList, alertInfo, alertFreq, patternFreq):
-    alertTime, alertType = alertInfo.split('-')
+    alertTime, alertType, seqNum = alertInfo.split('-')
     if len(windowList) > 0:
         patternFreq[(windowList[len(windowList)-1].split('-')[1], alertType)] = patternFreq[(windowList[len(windowList)-1].split('-')[1], alertType)] + 1
     windowList.append(alertInfo)
     alertFreq[alertType] = alertFreq[alertType] + 1
     while len(windowList) > 0:
         oldestAlertInfo = windowList[0]
-        oldestAlertTime, oldestAlertType = oldestAlertInfo.split('-')
+        oldestAlertTime, oldestAlertType,seqNum = oldestAlertInfo.split('-')
         if not validTimeGap(timeConversion(oldestAlertTime), timeConversion(alertTime), stepWinT):
             alertFreq[oldestAlertType] = alertFreq[oldestAlertType] - 1
             if len(windowList) > 1:

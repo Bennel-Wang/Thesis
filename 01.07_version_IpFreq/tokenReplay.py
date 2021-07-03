@@ -2,6 +2,7 @@ import collections
 import csv
 import os
 import para
+import pandas as pd
 import helperfunc
 import petrinet
 
@@ -14,6 +15,9 @@ def tokenReplay():
             patternFreq = collections.defaultdict(int)
             petrinetPlace = collections.defaultdict(float)
             tokenList = [0,0,0,0]   #p,c,m,r
+            counter = 0 #how many record of fitness is bigger than 0.5
+            res = []
+            dangerous = False
             with open(file_dir+ str(file), 'r') as f:
                 reader = csv.reader(f)
                 for (j, l) in enumerate(reader):
@@ -25,7 +29,7 @@ def tokenReplay():
                         cor = 0
                         mostCorAlertInfo = ''
                         for alertInfo in windowList:
-                            alertTime, alertType = alertInfo.split('-')
+                            alertTime, alertType, SeqNum = alertInfo.split('-')
                             timeInt = abs(helperfunc.timeConversion(l['Time']) - helperfunc.timeConversion(alertTime))
                             #freqGap = abs(alertFreq[l['AlertType']] - alertFreq[alertType])
                             prop = (patternFreq[(alertType, l['AlertType'])]+0.001)/(alertFreq[l['AlertType']]+0.001)
@@ -39,12 +43,43 @@ def tokenReplay():
                             #if cor <= newCor:
                                 #cor = newCor
                                 #mostCorAlertInfo = alertInfo
-                        helperfunc.windowUpdate(windowList, str(l['Time']) + '-' + l['AlertType'], alertFreq,patternFreq)
-
-                        petrinet.produceToken(petrinetPlace,str(l['Time']) + '-' + l['AlertType'], tokenList, 1)
+                        helperfunc.windowUpdate(windowList, str(l['Time']) + '-' + l['AlertType']  + '-' + str(j) , alertFreq,patternFreq)
+                        petrinet.produceToken(petrinetPlace,str(l['Time']) + '-' + l['AlertType']  + '-' + str(j), tokenList, 1)
                         #print(petrinetPlace)
                         tokenList[3] = tokenList[0] - tokenList[1] + tokenList[2]
                         #print(tokenList)
                         fitness = petrinet.fitnessCal(tokenList)
-                        print(fitness, 'file', para.fileNumber, 'tree', file)
+                        if fitness > para.fitnessT:
+                            counter = counter + 1
+                        if j > para.minRecord and counter > para.recordPercentage * j:
+                            res.append([l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'], fitness,'dangerous'])
+                            dangerous = True
+                        else:
+                            res.append([l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'], fitness,'normal'])
+                        print(fitness, file)
+            if dangerous:
+                seqPetri = []
+                for _,v in petrinetPlace.items():
+                   seqPetri.append(v)
+                #print(len(seqPetri), len(res))
+                for k in range(len(res)):
+                    res[k].append(seqPetri[k])
+                    if seqPetri[k] <= para.tokenT:
+                        if res[k-1][-1] == 'End Step' or res[k-1][-1] == 'Outside Step':
+                            res[k - 1][-1] = 'New Step'
+                        res[k].append('In Step')
+                    elif res[k-1][-1] != 'End Step' and res[k-1][-1] != 'Outside Step':
+                        res[k].append('End Step')
+                    else:
+                        res[k].append('Outside Step')
+                name = ['time', 'alertType', 'srcip', 'desip', 'fitness', 'state', ' token', 'In Step']
+                data = pd.DataFrame(columns=name, data=res)
+                data.to_csv('/home/jin/Documents/FinalResult/Scenario' + str(para.fileNumber) + '/01.07_result_of_' + file,
+                            index=False)
+                print('Done')
+
+
+
+
+
 

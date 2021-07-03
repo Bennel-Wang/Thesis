@@ -14,6 +14,7 @@ def IpFilter():
                 record = collections.defaultdict(list) # record[SrcIp] = [alert information]
                 res = collections.defaultdict(list)    #result[treeNum] = [list of record[SrcIp]]
                 tree = collections.defaultdict(int)    #tree[Ip] = TreeNumber
+                preCorAlert = []
                 continue
             else:
                 l = {'Time': l[0], 'SrcIp': l[2], 'DesIp': l[4], 'Alert': l[5],'SeqNum':j}
@@ -40,7 +41,7 @@ def IpFilter():
                 res[tree[Ip2]] = res[tree[Ip2]] + record[Ip2]
                 record[Ip1] = []
                 record[Ip2] = []
-                res[tree[Ip1]].sort(key = helperfunc.takeTime)
+                res[tree[Ip1]].sort(key = helperfunc.takeTime)  #ranking
                 res[tree[Ip2]].sort(key = helperfunc.takeTime)
 
         mergeDict = collections.defaultdict(int)
