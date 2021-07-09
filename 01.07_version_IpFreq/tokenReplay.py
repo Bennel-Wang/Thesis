@@ -62,17 +62,30 @@ def tokenReplay():
                 for _,v in petrinetPlace.items():
                    seqPetri.append(v)
                 #print(len(seqPetri), len(res))
+                stepNum = 0
                 for k in range(len(res)):
                     res[k].append(seqPetri[k])
                     if seqPetri[k] <= para.tokenT:
-                        if res[k-1][-1] == 'End Step' or res[k-1][-1] == 'Outside Step':
-                            res[k - 1][-1] = 'New Step'
-                        res[k].append('In Step')
-                    elif res[k-1][-1] != 'End Step' and res[k-1][-1] != 'Outside Step':
-                        res[k].append('End Step')
+                        if res[k - 1][-1] == 'End Step'+ str(stepNum) or res[k - 1][-1] == 'Outside Step' or k == 0:
+                            stepNum = stepNum + 1
+                            res[k].append('Begin Step' + str(stepNum))
+                        else:
+                            res[k].append('In Step'+ str(stepNum))
+                    elif res[k-1][-1] == 'In Step'+ str(stepNum) or res[k-1][-1] == 'Begin Step'+ str(stepNum):
+                        res[k].append('End Step'+ str(stepNum))
                     else:
                         res[k].append('Outside Step')
-                name = ['time', 'alertType', 'srcip', 'desip', 'fitness', 'state', ' token', 'In Step']
+
+                    #res[k].append(seqPetri[k])
+                    #if seqPetri[k] <= para.tokenT:
+                    #    if res[k-1][-1] == 'End Step' or res[k-1][-1] == 'Outside Step':
+                    #        res[k - 1][-1] = 'New Step'
+                    #    res[k].append('In Step')
+                    #elif res[k-1][-1] != 'End Step' and res[k-1][-1] != 'Outside Step':
+                    #    res[k].append('End Step')
+                    #else:
+                    #    res[k].append('Outside Step')
+                name = ['time', 'alertType', 'srcip', 'desip', 'fitness', 'state', ' token', 'Step State']
                 data = pd.DataFrame(columns=name, data=res)
                 data.to_csv('/home/jin/Documents/FinalResult/Scenario' + str(para.fileNumber) + '/01.07_result_of_' + file,
                             index=False)

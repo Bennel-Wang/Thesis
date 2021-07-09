@@ -6,7 +6,7 @@ from attackGraphVisualization import resultVisualization
 def main():
     #treeVisualization()
     #IpFilter()
-    #tokenReplay()
-    resultVisualization()
+    tokenReplay()
+    #resultVisualization()
 if __name__ == '__main__':
     main()
