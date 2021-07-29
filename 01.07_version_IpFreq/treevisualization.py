@@ -1,3 +1,4 @@
+#visualize the frequent IP trees
 import collections
 import csv
 from graphviz import Digraph
@@ -25,7 +26,7 @@ def treeVisualization():
 
         for edge in edgeList:
             srcIp, desIp = edge.split('-')
-            if edgeFreq[(srcIp,desIp)]  >= j*para.IpNumT:
+            if edgeFreq[(srcIp,desIp)]  >= para.IpNumT:
                 dot.edge(srcIp,  desIp, label=str(edgeFreq[(srcIp,desIp)]))
                 if srcIp not in nodeList:
                     dot.node(name=srcIp, label=srcIp)

@@ -1,3 +1,4 @@
+#hyperalert aggregation
 import csv
 import pandas as pd
 import os
@@ -6,6 +7,7 @@ from helperfunc import validTimeGap
 from helperfunc import timeConversion
 from helperfunc import timeConversionBack
 
+#aggregation for the correlated alerts
 def alertAggregation():
     file_dir = '/home/jin/Documents/FinalResult/Scenario' + str(para.fileNumber) + '/'
     for root, dirs, files in os.walk(file_dir):
@@ -34,7 +36,7 @@ def alertAggregation():
                             index=False)
 
 
-
+#aggregation for labelled alerts
 def labelAlertAggregation():
     with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/Ground True/DDoS' + str(para.fileNumber) + '.csv', 'r') as f:
         reader = csv.reader(f)

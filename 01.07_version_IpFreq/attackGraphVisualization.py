@@ -1,9 +1,11 @@
+#ground truth, algorithm input and algorithm output Petri net visualization
 import collections
 import csv
 from graphviz import Digraph
 import para
 import os
 
+#Visualization for Petri net of algorithm output alerts
 def resultVisualization():
     file_dir = '/home/jin/Documents/FinalResult/Scenario' + str(para.fileNumber) + '/'
     for root, dirs, files in os.walk(file_dir):
@@ -36,7 +38,7 @@ def resultVisualization():
             print(edgeNum)
             dot.render(filename='connection-record' + str(para.fileNumber) + '-01.07', directory="/home/jin/Documents/FinalResult",view =True)
 
-
+#Visualization for Petri net of algorithm labelled alerts
 def labelVisualization():
     file_dir = '/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/Ground True/'
     for root, dirs, files in os.walk(file_dir):
@@ -66,6 +68,7 @@ def labelVisualization():
             print(edgeNum)
             dot.render(filename='connection-record' + file + '-01.07', directory="/home/jin/Documents/FinalResult",view =True)
 
+#Visualization for Petri net of algorithm input alerts
 def originalVisualization():
     with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/tc_inside' + str(para.fileNumber) + '_alert.csv',
               'r') as f:

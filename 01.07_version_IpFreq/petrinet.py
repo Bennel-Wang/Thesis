@@ -1,8 +1,12 @@
+#Petri net related function
+
+#token production
 def produceToken(petriNetPlace, transition, tokenList, w):
     petriNetPlace[transition] = petriNetPlace[transition] + float(w)
     tokenList[0] = tokenList[0] + 1
     return
 
+#token consumption
 def consumeToken(petriNetPlace, transition, tokenList, w):
     tokenList[1] = tokenList[1] + w
     if petriNetPlace[transition] - float(w) >= 0:
@@ -12,6 +16,7 @@ def consumeToken(petriNetPlace, transition, tokenList, w):
         petriNetPlace[transition] = 0
     return
 
+#causal ratio (original fitness) calculation
 def fitnessCal(tokenList):
     delta = 0.0001
     [p,c,m,r] = tokenList

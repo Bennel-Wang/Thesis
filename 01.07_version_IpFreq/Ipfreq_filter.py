@@ -1,9 +1,12 @@
+#frequent IP tree building
 import para
 import helperfunc
 import csv
 import pandas as pd
 import collections
 
+#filter infrequent IP and build frequent IP trees
+#the time window is checked manually here
 def IpFilter():
     with open('/home/jin/Documents/DARPA2000-LLS_DDOS_2.0.2/tc_inside' + str(para.fileNumber) + '_alert.csv', 'r') as f:
         reader = csv.reader(f)
@@ -22,22 +25,22 @@ def IpFilter():
                 record[l['SrcIp']].append([l['Time'], l['Alert'],l['SrcIp'], l['DesIp'], l['SeqNum']])
 
         #build IP tree
-        maxTreeNum = 0  #maximum tree number
+        maxTreeNum = 0                      #current maximum tree number, increase with new tree
         merge = []
-        for (Ip1,Ip2) in IpFreq.keys():
-            if IpFreq[(Ip1, Ip2)] > j * para.IpNumT and j > para.minAlertNum:       #if frequency is bigger than threshold and alert number is bigger than the minimum number that can form a multi-step attack
+        for (Ip1,Ip2) in IpFreq.keys():     #tree building or merging
+            if IpFreq[(Ip1, Ip2)] >= para.IpNumT:       #if frequency is bigger than threshold and alert number is bigger than the minimum number that can form a multi-step attack
                 if tree[Ip1] == 0 and tree[Ip2] == 0:
-                    maxTreeNum = maxTreeNum + 1     #build new tree
+                    maxTreeNum = maxTreeNum + 1          #build new tree
                     tree[Ip1] = maxTreeNum
                     tree[Ip2] = maxTreeNum
-                elif tree[Ip1] == 0 and tree[Ip2] != 0:  #connect the tree
+                elif tree[Ip1] == 0 and tree[Ip2] != 0:  #merge the tree
                     tree[Ip1] = tree[Ip2]
-                elif tree[Ip1] != 0 and tree[Ip2] == 0:  #connect the tree
+                elif tree[Ip1] != 0 and tree[Ip2] == 0:  #merge the tree
                     tree[Ip2] = tree[Ip1]
                 else:
                     merge.append([tree[Ip1], tree[Ip2]])
 
-                res[tree[Ip1]] = res[tree[Ip1]] + record[Ip1]
+                res[tree[Ip1]] = res[tree[Ip1]] + record[Ip1]       #merge two lists
                 res[tree[Ip2]] = res[tree[Ip2]] + record[Ip2]
                 record[Ip1] = []
                 record[Ip2] = []

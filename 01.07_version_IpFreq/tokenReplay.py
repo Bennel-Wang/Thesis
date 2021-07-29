@@ -1,3 +1,5 @@
+#token replay, select alert group, label step state
+#input alerts from dataset, output selected alert group with step states labelled
 import collections
 import csv
 import os
@@ -5,10 +7,12 @@ import para
 import pandas as pd
 import helperfunc
 import petrinet
+from time import perf_counter
 
 def tokenReplay():
     file_dir = '/home/jin/Documents/Iptree/scenario' + str(para.fileNumber) + '/'
-    for root, dirs, files in os.walk(file_dir):
+    #t1_start = perf_counter()                       #run time start
+    for root, dirs, files in os.walk(file_dir):     #read all the frequent IP tree
         for file in files:
             windowList = []
             alertFreq = collections.defaultdict(int)
@@ -22,6 +26,9 @@ def tokenReplay():
                 reader = csv.reader(f)
                 for (j, l) in enumerate(reader):
                 # remove the head
+                    #total_count = total_count + 1   #for time calculation
+                    #if total_count > 300:
+                    #    break
                     if (j == 0):
                         continue
                     else:
@@ -36,34 +43,29 @@ def tokenReplay():
                             newCor = helperfunc.correlationEstimation(timeInt,prop)
                             #print(newCor,alertInfo, str(l['Time']) + '-' + l['AlertType'])
                             #print(patternFreq)
-                            if newCor>0.5:
+                            if newCor>0.5:          #dynamically connection
                                 #print(alertInfo,str(l['Time']) + '-' +l['AlertType'],newCor)
                                 petrinet.consumeToken(petrinetPlace, alertInfo, tokenList, newCor)
 
-                            #if cor <= newCor:
-                                #cor = newCor
-                                #mostCorAlertInfo = alertInfo
                         helperfunc.windowUpdate(windowList, str(l['Time']) + '-' + l['AlertType']  + '-' + str(j) , alertFreq,patternFreq)
                         petrinet.produceToken(petrinetPlace,str(l['Time']) + '-' + l['AlertType']  + '-' + str(j), tokenList, 1)
                         #print(petrinetPlace)
                         tokenList[3] = tokenList[0] - tokenList[1] + tokenList[2]
                         #print(tokenList)
-                        fitness = petrinet.fitnessCal(tokenList)
-                        if fitness > para.fitnessT:
+                        fitness = petrinet.fitnessCal(tokenList)    #fitness/causal ratio
+                        if fitness > para.fitnessT:                                         #high causal ratio
                             counter = counter + 1
-                        if j > para.minRecord and counter > para.recordPercentage * j:
+                        if j > para.minRecord and counter > para.recordPercentage * j:      #long duration (of high causal ratio)
                             res.append([l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'], fitness,'dangerous'])
-                            dangerous = True
+                            dangerous = True            # true means that an action to prevent further attack is taken
                         else:
                             res.append([l['Time'], l['AlertType'], l['SrcIp'], l['DesIp'], fitness,'normal'])
-                        print(fitness, file)
             if dangerous:
                 seqPetri = []
                 for _,v in petrinetPlace.items():
                    seqPetri.append(v)
-                #print(len(seqPetri), len(res))
                 stepNum = 0
-                for k in range(len(res)):
+                for k in range(len(res)):           #step state
                     res[k].append(seqPetri[k])
                     if seqPetri[k] <= para.tokenT:
                         if res[k - 1][-1] == 'End Step'+ str(stepNum) or res[k - 1][-1] == 'Outside Step' or k == 0:
@@ -76,6 +78,8 @@ def tokenReplay():
                     else:
                         res[k].append('Outside Step')
 
+    #t1_end = perf_counter()
+    #print('Duration', t1_end - t1_start)
                     #res[k].append(seqPetri[k])
                     #if seqPetri[k] <= para.tokenT:
                     #    if res[k-1][-1] == 'End Step' or res[k-1][-1] == 'Outside Step':
@@ -85,6 +89,7 @@ def tokenReplay():
                     #    res[k].append('End Step')
                     #else:
                     #    res[k].append('Outside Step')
+                    #print(res[k])
                 name = ['time', 'alertType', 'srcip', 'desip', 'fitness', 'state', ' token', 'Step State']
                 data = pd.DataFrame(columns=name, data=res)
                 data.to_csv('/home/jin/Documents/FinalResult/Scenario' + str(para.fileNumber) + '/01.07_result_of_' + file,
